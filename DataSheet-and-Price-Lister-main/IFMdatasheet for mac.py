@@ -93,16 +93,9 @@ if __name__ == '__main__':
         # print(f'所有的句柄：{handles}')
 
         try:
-            # # 等待最多 10 秒直到“接受所有”按钮出现
-            # accept_button = WebDriverWait(edge, 10).until(
-            #     EC.element_to_be_clickable((By.XPATH, '//*[@id="uc-center-container"]/div[2]/div/div[1]/div/button[3]'))
-            # )
-            # accept_button.click()
+    
             
-            
-            
-            
-            wait = WebDriverWait(edge, 10)
+            wait = WebDriverWait(edge, 30)
 
             # 等待并点击“全部接受”按钮
             accept_button = wait.until(
