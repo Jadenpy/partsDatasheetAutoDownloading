@@ -7,7 +7,7 @@ import os
 # from selenium.webdriver.support import expected_conditions as EC
 import sys
 
-def open_edge():
+def open_edge(implicitly_wait=10):
 
     download_dir = os.path.abspath("datesheet_downloads")
     os.makedirs(download_dir, exist_ok=True)
@@ -33,7 +33,7 @@ def open_edge():
 
     # start position and size 
     edge.set_window_position(5,5)
-    edge.set_window_size(800,600)
+    edge.set_window_size(1200,600)
 
     #implicitly wait time 
     edge.implicitly_wait(10)
