@@ -52,6 +52,7 @@ def create_driver():
     options = Options()
     options.add_argument("--start-maximized")
     options.add_argument("--log-level=3")  # 设置日志级别
+    options.add_experimental_option("detach", True)  # 关键，设置浏览器关闭时不退出
     service = Service(executable_path="DataSheet-and-Price-Lister-main\drives\msedgedriver.exe")  # 如果 msedgedriver 在 PATH 中，无需指定路径
     driver = webdriver.Edge(service=service, options=options)
     return driver
@@ -60,7 +61,7 @@ def open_url(driver, url):
     """打开指定的网页 URL"""
     driver.get(url)
 
-def operate_element(driver, by, value, action, input_text=None, timeout=10):
+def operate_element(driver, by, value, action, input_text=None, timeout=50):
     """
     通用元素操作函数
 
@@ -78,14 +79,19 @@ def operate_element(driver, by, value, action, input_text=None, timeout=10):
     """
     try:
         wait = WebDriverWait(driver, timeout)
+        print(f"等待元素 {by}={value} 出现,timeout={timeout}秒")
         element = wait.until(EC.presence_of_element_located((by, value)))
-
+        print(f"元素 {by}={value} 出现")
+        time.sleep(3)
         if action == 'click':
             element.click()
+            print(f"点击元素 {by}={value}")
         elif action == 'send_keys':
             element.send_keys(input_text)
+            print(f"在元素 {by}={value} 输入 {input_text}")
         elif action == 'clear':
             element.clear()
+            print(f"清空元素 {by}={value} 的内容")
         elif action == 'get_text':
             return element.text
         elif action.startswith("get_attribute:"):
@@ -198,30 +204,31 @@ if __name__ == '__main__':
 
 
     # baidu_search()
+
     def EAM():
          # 创建 Edge 浏览器实例
         driver = create_driver()
 
         # 打开指定的 URL
-        open_url(driver, "https://www.baidu.com")
+        open_url(driver, "https://myeric.textron.com/")
 
         # 等待页面加载
         time.sleep(2)
 
-        # 操作搜索框，输入关键词并提交
-        auto_retry(lambda: operate_element(driver, By.ID, "kw", 'send_keys', input_text="AI真是太棒了！"))
-        operate_element(driver, By.ID, "su", 'click')
+        # 点击 EAM a Tag
+        auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="MyTools"]/div/ul/li[7]/a', 'click'))
 
-        # 等待搜索结果加载
-        time.sleep(3)
+        # 进入EAM页面后，等待页面加载,并点击 order a Tag     //*[@id="tab-1052"]
+        auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="tab-1052"]', 'click'))
+        # driver.quit()
 
-        # 获取并打印前几个搜索结果标题
-        titles = driver.find_elements(By.CSS_SELECTOR, "h3.t")
-        for i, title in enumerate(titles[:5], start=1):
-            print(f"{i}. {title.text}")
+        # 依据人员筛选 //*[@id="textfield-1333-inputEl"]
+        auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="textfield-1333-inputEl"]', 'send_keys', input_text="HXSH"))
 
-        # 关闭浏览器
-        driver.quit()
+
+
+
+    EAM()
 
     
     
