@@ -52,7 +52,7 @@ def create_driver():
     options = Options()
     options.add_argument("--start-maximized")
     options.add_argument("--log-level=3")  # 设置日志级别
-    service = Service(executable_path="DataSheet-and-Price-Lister-main/msedgedriver.exe")  # 如果 msedgedriver 在 PATH 中，无需指定路径
+    service = Service(executable_path="DataSheet-and-Price-Lister-main\drives\msedgedriver.exe")  # 如果 msedgedriver 在 PATH 中，无需指定路径
     driver = webdriver.Edge(service=service, options=options)
     return driver
 
@@ -171,26 +171,57 @@ def click_shadow_element(driver, shadow_host_selector, target_selector):
 
 if __name__ == '__main__':
 
-    # 创建 Edge 浏览器实例
-    driver = create_driver()
+    def baidu_search():
+        # 创建 Edge 浏览器实例
+        driver = create_driver()
 
-    # 打开指定的 URL
-    open_url(driver, "https://www.baidu.com")
+        # 打开指定的 URL
+        open_url(driver, "https://www.baidu.com")
 
-    # 等待页面加载
-    time.sleep(2)
+        # 等待页面加载
+        time.sleep(2)
 
-    # 操作搜索框，输入关键词并提交
-    auto_retry(lambda: operate_element(driver, By.ID, "kw", 'send_keys', input_text="AI真是太棒了！"))
-    operate_element(driver, By.ID, "su", 'click')
+        # 操作搜索框，输入关键词并提交
+        auto_retry(lambda: operate_element(driver, By.ID, "kw", 'send_keys', input_text="AI真是太棒了！"))
+        operate_element(driver, By.ID, "su", 'click')
 
-    # 等待搜索结果加载
-    time.sleep(3)
+        # 等待搜索结果加载
+        time.sleep(3)
 
-    # 获取并打印前几个搜索结果标题
-    titles = driver.find_elements(By.CSS_SELECTOR, "h3.t")
-    for i, title in enumerate(titles[:5], start=1):
-        print(f"{i}. {title.text}")
+        # 获取并打印前几个搜索结果标题
+        titles = driver.find_elements(By.CSS_SELECTOR, "h3.t")
+        for i, title in enumerate(titles[:5], start=1):
+            print(f"{i}. {title.text}")
 
-    # 关闭浏览器
-    driver.quit()
+        # 关闭浏览器
+        driver.quit()
+
+
+    # baidu_search()
+    def EAM():
+         # 创建 Edge 浏览器实例
+        driver = create_driver()
+
+        # 打开指定的 URL
+        open_url(driver, "https://www.baidu.com")
+
+        # 等待页面加载
+        time.sleep(2)
+
+        # 操作搜索框，输入关键词并提交
+        auto_retry(lambda: operate_element(driver, By.ID, "kw", 'send_keys', input_text="AI真是太棒了！"))
+        operate_element(driver, By.ID, "su", 'click')
+
+        # 等待搜索结果加载
+        time.sleep(3)
+
+        # 获取并打印前几个搜索结果标题
+        titles = driver.find_elements(By.CSS_SELECTOR, "h3.t")
+        for i, title in enumerate(titles[:5], start=1):
+            print(f"{i}. {title.text}")
+
+        # 关闭浏览器
+        driver.quit()
+
+    
+    
