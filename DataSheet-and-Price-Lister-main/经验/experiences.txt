@@ -8,3 +8,13 @@ console.log(elem.ownerDocument.defaultView.frameElement);
 ### 获取iframe的父元素
 let elem = $x('//*[@id="textfield-1333-inputEl"]')[0];
 console.log(elem.ownerDocument.defaultView.frameElement.parentElement);
+
+### 获取html的结构
+print(f"开始保存当前页面内容")
+        with open("current_page.html", "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
+
+
+### 在控制台 复制 html文本
+1. copy(document.documentElement.outerHTML)     --复制整个html
+2. 粘贴在.html文件中，保存即可

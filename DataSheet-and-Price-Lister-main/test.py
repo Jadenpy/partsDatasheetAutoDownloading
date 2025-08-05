@@ -64,7 +64,7 @@ def open_url(driver, url):
     """打开指定的网页 URL"""
     driver.get(url)
 
-def operate_element(driver, by, value, action, input_text=None, timeout=50):
+def operate_element(driver, by, value, action, input_text=None, timeout=70):
     """
     通用元素操作函数
 
@@ -85,7 +85,7 @@ def operate_element(driver, by, value, action, input_text=None, timeout=50):
         print(f"现在是{datetime.now().strftime('%H:%M:%S')},等待元素 {by}={value} 出现,timeout={timeout}秒")
         element = wait.until(EC.presence_of_element_located((by, value)))
         print(f"现在是{datetime.now().strftime('%H:%M:%S')},元素 {by}={value} 出现")
-        time.sleep(3)
+        time.sleep(5)
         if action == 'click':
             element.click()
             print(f"点击元素 {by}={value}")
@@ -330,64 +330,34 @@ if __name__ == '__main__':
 
         # 进入EAM页面后，等待页面加载,并点击 order a Tag     //*[@id="tab-1052"]
         auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="tab-1052"]', 'click'))
-        # driver.quit()
-
-        # iframe handle
-
-
-        # 依据人员筛选 //*[@id="textfield-1333-inputEl"]
-        # auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="textfield-1333-inputEl"]', 'send_keys', input_text="HXSH"))
-
-
-
-
        
-        # 获取iframe并查找输入框
-        iframe_xpath = '//*[@id="uxtabiframe-1040-iframeEl"]'
-        input_box_xpath = '//*[@id="textfield-1333-inputEl"]'
-        # switch_to_iframe_with_element(driver, iframe_xpath,By.XPATH, input_box_xpath)
-        """
-        iframe_driver = get_iframe_and_return(driver,By.XPATH,iframe_xpath)
-        if iframe_driver:
-            operate_element(iframe_driver,By.XPATH, input_box_xpath, 'send_keys', input_text="HXSH")
-        else:
-            print("iframe not found")
-        """
-        # time.sleep(60)
-        iframes = driver.find_elements(By.TAG_NAME, 'iframe')
-        print(f"发现 {len(iframes)} 个 iframe，{iframes}")
-        # for i, frame in enumerate(iframes):
-        #     print(f"iframe {i} 的 src 属性是 {frame.get_attribute('src')}")
 
-        # # 遍历每个 iframe，尝试查找目标元素
-        for i, frame in enumerate(iframes):
-            driver.switch_to.default_content()  # 每次循环先回主文档，再切换
-            driver.switch_to.frame(frame)
-            print(f"切换到第 {i+1}个 iframe并开始寻找元素")
-            try:
-                print(f"开始尝试寻找元素......")
-                element = WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, input_box_xpath)))
-                print(f"✅ 找到元素，在第 {i+1}个,总共{len(iframes)+1} 个 iframe 中")
-                
-                # 成功后可执行输入操作
-                time.sleep(2)
-                print(f"初始化清空文本框")
-                element.clear()
-                time.sleep(1)
-                print(f"输入文本")
-                element.send_keys("HXSH")
-                # 回车
-                time.sleep(1)
-                print(f"回车")
-                element.send_keys(Keys.ENTER)
-                break  # 找到了就退出
-            except Exception as e:
-                driver.save_screenshot('debug_screenshot.png')
-                print(f"❌ 在第 {i+1} 个 iframe 中未找到目标元素: {e}")
-            finally:
-                driver.switch_to.default_content()  # 每次都确保回主文档
+        print('开始处理iframe')
+        iframe = WebDriverWait(driver, 70).until(
+        EC.presence_of_element_located((By.ID, "uxtabiframe-1040-iframeEl"))
+)
+        
+        driver.switch_to.frame(iframe)
 
+        input_box = WebDriverWait(driver, 70).until(
+    EC.presence_of_element_located((By.ID, "textfield-1333-inputEl"))
+)
 
+        if input_box:
+            print("找到了输入框")
+            time.sleep(5)
+            input_box.clear()
+            time.sleep(5)
+            print("输入文本")
+            input_box.send_keys('HXSH')
+            time.sleep(5)
+            print("回车键")
+            input_box.send_keys(Keys.ENTER)
+
+        driver.switch_to.default_content()
+       
+      
+    
 
     print(f'测试已经于 {datetime.now()} 开始')
     EAM()
