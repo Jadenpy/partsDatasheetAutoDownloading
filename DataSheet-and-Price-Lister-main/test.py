@@ -49,6 +49,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import time
 from datetime import datetime
+from selenium.webdriver.common.action_chains import ActionChains
 
 def create_driver():
     """创建并返回一个 Edge 浏览器实例"""
@@ -357,7 +358,7 @@ if __name__ == '__main__':
         #     print("回车键")
         #     input_box.send_keys(Keys.ENTER)
         print('开始输入HXSH')
-        driver.execute_script("arguments[0].value = 'HXSH';", input_box)
+        # driver.execute_script("arguments[0].value = 'HXSH';", input_box)
         # input_box.send_keys(Keys.ENTER)
         # driver.execute_script("""
         # var e = new KeyboardEvent('keydown', {
@@ -369,15 +370,32 @@ if __name__ == '__main__':
         # """, input_box)
         # trigger_el = driver.find_element(By.ID, "textfield-1333-triggerWrap")
         # trigger_el.click()
-        print('输入完成,开始点击')
-        print('点击 textfield-1333-triggerWrap')
-        operate_element(driver,By.ID,"textfield-1333-triggerWrap",'click')
-        print('点击 textfield-1333 Div')
-        operate_element(driver,By.ID,"textfield-1333",'click')
-        print('点击 textfield-1333-labelEl Label')
-        operate_element(driver,By.ID,"textfield-1333-labelEl",'click')
-        
+        # print('输入完成,开始点击')
+        # print('点击 textfield-1333-triggerWrap')
+        # operate_element(driver,By.ID,"textfield-1333-triggerWrap",'click')
+        # print('点击 textfield-1333 Div')
+        # operate_element(driver,By.ID,"textfield-1333",'click')
+        # print('点击 textfield-1333-labelEl Label')
+        # operate_element(driver,By.ID,"textfield-1333-labelEl",'click')
+        # driver.execute_script("""
+        # arguments[0].focus();
+        # arguments[0].value = 'HXSH';
+        # var event = new KeyboardEvent('keydown', {
+        #     bubbles: true,
+        #     cancelable: true,
+        #     key: 'Enter',
+        #     code: 'Enter',
+        #     keyCode: 13,
+        #     which: 13
+        # });
+        # arguments[0].dispatchEvent(event);
+        # """, input_box)
+        # input_box = driver.find_element(By.ID, "textfield-1333-inputEl")
 
+        actions = ActionChains(driver)
+        actions.move_to_element(input_box).click()
+        actions.send_keys("HXSH").send_keys(Keys.ENTER)
+        actions.perform()
         
         driver.switch_to.default_content()
        
