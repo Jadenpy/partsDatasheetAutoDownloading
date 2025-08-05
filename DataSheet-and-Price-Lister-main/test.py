@@ -74,7 +74,7 @@ def operate_element(driver, by, value, action, input_text=None, timeout=70):
     - value: 元素定位值
     - action: 要执行的操作，如 'click', 'send_keys', 'clear', 'get_text'
     - input_text: 输入框中要输入的内容（仅在 send_keys 操作中使用）
-    - timeout: 等待时间（默认 10 秒）
+    - timeout: 等待时间（默认 70 秒）
 
     返回：
     - 如果是 get_text 或 get_attribute，则返回对应值
@@ -83,9 +83,10 @@ def operate_element(driver, by, value, action, input_text=None, timeout=70):
     try:
         wait = WebDriverWait(driver, timeout)
         print(f"现在是{datetime.now().strftime('%H:%M:%S')},等待元素 {by}={value} 出现,timeout={timeout}秒")
-        element = wait.until(EC.presence_of_element_located((by, value)))
+        # element = wait.until(EC.presence_of_element_located((by, value)))
+        element = wait.until(EC.element_to_be_clickable((by, value)))
         print(f"现在是{datetime.now().strftime('%H:%M:%S')},元素 {by}={value} 出现")
-        time.sleep(5)
+        # time.sleep(5)
         if action == 'click':
             element.click()
             print(f"点击元素 {by}={value}")
@@ -340,20 +341,44 @@ if __name__ == '__main__':
         driver.switch_to.frame(iframe)
 
         input_box = WebDriverWait(driver, 70).until(
-    EC.presence_of_element_located((By.ID, "textfield-1333-inputEl"))
+        EC.presence_of_element_located((By.ID, "textfield-1333-inputEl"))
+        # EC.element_to_be_clickable((By.ID, "textfield-1333-inputEl"))
 )
 
-        if input_box:
-            print("找到了输入框")
-            time.sleep(5)
-            input_box.clear()
-            time.sleep(5)
-            print("输入文本")
-            input_box.send_keys('HXSH')
-            time.sleep(5)
-            print("回车键")
-            input_box.send_keys(Keys.ENTER)
+        # if input_box:
+        #     print("找到了输入框")
+        #     input_box.click()
+        #     time.sleep(5)
+        #     input_box.clear()
+        #     time.sleep(5)
+        #     print("输入文本")
+        #     input_box.send_keys('HXSH')
+        #     time.sleep(5)
+        #     print("回车键")
+        #     input_box.send_keys(Keys.ENTER)
+        print('开始输入HXSH')
+        driver.execute_script("arguments[0].value = 'HXSH';", input_box)
+        # input_box.send_keys(Keys.ENTER)
+        # driver.execute_script("""
+        # var e = new KeyboardEvent('keydown', {
+        #     bubbles: true,
+        #     cancelable: true,
+        #     keyCode: 13
+        # });
+        # arguments[0].dispatchEvent(e);
+        # """, input_box)
+        # trigger_el = driver.find_element(By.ID, "textfield-1333-triggerWrap")
+        # trigger_el.click()
+        print('输入完成,开始点击')
+        print('点击 textfield-1333-triggerWrap')
+        operate_element(driver,By.ID,"textfield-1333-triggerWrap",'click')
+        print('点击 textfield-1333 Div')
+        operate_element(driver,By.ID,"textfield-1333",'click')
+        print('点击 textfield-1333-labelEl Label')
+        operate_element(driver,By.ID,"textfield-1333-labelEl",'click')
+        
 
+        
         driver.switch_to.default_content()
        
       
