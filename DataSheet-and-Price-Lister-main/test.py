@@ -45,7 +45,10 @@ from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+# import keys
+from selenium.webdriver.common.keys import Keys
 import time
+from datetime import datetime
 
 def create_driver():
     """创建并返回一个 Edge 浏览器实例"""
@@ -79,9 +82,9 @@ def operate_element(driver, by, value, action, input_text=None, timeout=50):
     """
     try:
         wait = WebDriverWait(driver, timeout)
-        print(f"等待元素 {by}={value} 出现,timeout={timeout}秒")
+        print(f"现在是{datetime.now().strftime('%H:%M:%S')},等待元素 {by}={value} 出现,timeout={timeout}秒")
         element = wait.until(EC.presence_of_element_located((by, value)))
-        print(f"元素 {by}={value} 出现")
+        print(f"现在是{datetime.now().strftime('%H:%M:%S')},元素 {by}={value} 出现")
         time.sleep(3)
         if action == 'click':
             element.click()
@@ -101,6 +104,7 @@ def operate_element(driver, by, value, action, input_text=None, timeout=50):
             print(f"❌ Unknown action: {action}")
     except Exception as e:
         print(f"❌ Error operating element: {e}")
+        raise
 
 def auto_retry(func, retries=3, wait=2):
 
@@ -120,11 +124,13 @@ def auto_retry(func, retries=3, wait=2):
         try:
             return func()
         except Exception as e:
-            print(f"⚠️ Attempt {attempt} failed: {e}")
+            print(f"⚠️ Attempt {attempt} failed: {e},now is {datetime.now().strftime('%H:%M:%S')}")
             if attempt < retries:
                 time.sleep(wait)
             else:
+                print(f'now is {datetime.now().strftime("%H:%M:%S")}')
                 print("❌ All retries failed.")
+
                 return None
 
 def expand_shadow_element(driver, element):
@@ -173,6 +179,107 @@ def click_shadow_element(driver, shadow_host_selector, target_selector):
     target_element.click()
 
 
+def handle_new_tab(driver, expected_tabs=2, timeout=50):
+    """
+    处理新标签页并切换到该标签页
+
+    参数:
+        driver: WebDriver 实例
+        expected_tabs: 期望窗口数量，默认2个
+        timeout: 等待超时时间，默认10秒
+
+    功能:
+        等待新标签页打开，并切换到该标签页
+    """
+    # 等待新标签页打开
+    WebDriverWait(driver, timeout).until(EC.number_of_windows_to_be(expected_tabs))
+
+    # 获取所有窗口句柄
+    window_handles = driver.window_handles
+
+    # 切换到新标签页（默认切换到最后一个）
+    driver.switch_to.window(window_handles[-1])
+
+    time.sleep(2)  # 建议用显示等待代替，这里暂时保留
+
+    # 这里可以继续写在新标签页要做的操作
+
+
+def switch_to_iframe_with_element(driver, iframe_xpath, target_by, target_value, timeout=50):
+    """
+    尝试切换到包含目标元素的 iframe
+
+    参数:
+        driver: WebDriver 实例
+        iframe_xpath: iframe 的 XPath
+        target_by: 目标元素的定位方式（如 By.XPATH, By.ID 等）
+        target_value: 目标元素的定位值
+        timeout: 等待目标元素出现的最长时间（秒）
+
+    返回:
+        True：成功切换到包含目标元素的 iframe
+        False：所有 iframe 中都未找到目标元素
+    """
+    
+    try:
+        iframe = WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.XPATH, iframe_xpath))
+        )
+        print(f"🔁 已找到 iframe: {iframe_xpath}")
+        time.sleep(2)
+        driver.switch_to.frame(iframe)
+        print(f"🔁 已切换到 iframe: {iframe_xpath}")
+
+        # 在当前 iframe 查找目标元素
+        print(f"🔍 正在查找目标元素: 定位方式: {target_by}, 定位值: {target_value}")
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((target_by, target_value))
+        )
+        print(f"✅ 找到目标元素: {target_by}, {target_value}")
+        return True
+    except Exception as e:
+        print(f"⚠️ 在 iframe {iframe_xpath} 中未找到目标元素: {e}")
+        driver.switch_to.default_content()
+        return False
+   
+def get_iframe_and_return(driver, iframe_by, iframe_value, timeout=50):
+    """
+    尝试切换到包含目标元素的 iframe
+
+    参数:
+        driver: WebDriver 实例
+        iframe_by: iframe 的 定位方式（如 By.XPATH, By.ID 等）
+        iframe_value: iframe 的定位值
+        timeout: 等待目标元素出现的最长时间（秒）
+
+    返回:
+        driver：成功切换到目标iframe
+        none：未找到iframe
+    """
+    
+    try:
+        iframe = WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((iframe_by, iframe_value)))
+        print(f"🔁 已找到 iframe: {iframe_by}, {iframe_value}")
+        time.sleep(2)
+        driver.switch_to.frame(iframe)
+        print(f"🔁 已切换到 iframe: {iframe_by}")
+        return driver
+
+        # 在当前 iframe 查找目标元素
+        print(f"🔍 正在查找目标元素: 定位方式: {target_by}, 定位值: {target_value}")
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((target_by, target_value))
+        )
+        print(f"✅ 找到目标元素: {target_by}, {target_value}")
+        return True
+    except Exception as e:
+        print(f"⚠️ 未找到目标元素: {iframe_by}, {iframe_value}")
+        driver.switch_to.default_content()
+        return None
+   
+        
+
 
 
 if __name__ == '__main__':
@@ -218,16 +325,71 @@ if __name__ == '__main__':
         # 点击 EAM a Tag
         auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="MyTools"]/div/ul/li[7]/a', 'click'))
 
+        # Tab 跳转
+        handle_new_tab(driver)
+
         # 进入EAM页面后，等待页面加载,并点击 order a Tag     //*[@id="tab-1052"]
         auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="tab-1052"]', 'click'))
         # driver.quit()
 
+        # iframe handle
+
+
         # 依据人员筛选 //*[@id="textfield-1333-inputEl"]
-        auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="textfield-1333-inputEl"]', 'send_keys', input_text="HXSH"))
+        # auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="textfield-1333-inputEl"]', 'send_keys', input_text="HXSH"))
 
 
 
 
+       
+        # 获取iframe并查找输入框
+        iframe_xpath = '//*[@id="uxtabiframe-1040-iframeEl"]'
+        input_box_xpath = '//*[@id="textfield-1333-inputEl"]'
+        # switch_to_iframe_with_element(driver, iframe_xpath,By.XPATH, input_box_xpath)
+        """
+        iframe_driver = get_iframe_and_return(driver,By.XPATH,iframe_xpath)
+        if iframe_driver:
+            operate_element(iframe_driver,By.XPATH, input_box_xpath, 'send_keys', input_text="HXSH")
+        else:
+            print("iframe not found")
+        """
+        # time.sleep(60)
+        iframes = driver.find_elements(By.TAG_NAME, 'iframe')
+        print(f"发现 {len(iframes)} 个 iframe，{iframes}")
+        # for i, frame in enumerate(iframes):
+        #     print(f"iframe {i} 的 src 属性是 {frame.get_attribute('src')}")
+
+        # # 遍历每个 iframe，尝试查找目标元素
+        for i, frame in enumerate(iframes):
+            driver.switch_to.default_content()  # 每次循环先回主文档，再切换
+            driver.switch_to.frame(frame)
+            print(f"切换到第 {i+1}个 iframe并开始寻找元素")
+            try:
+                print(f"开始尝试寻找元素......")
+                element = WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, input_box_xpath)))
+                print(f"✅ 找到元素，在第 {i+1}个,总共{len(iframes)+1} 个 iframe 中")
+                
+                # 成功后可执行输入操作
+                time.sleep(2)
+                print(f"初始化清空文本框")
+                element.clear()
+                time.sleep(1)
+                print(f"输入文本")
+                element.send_keys("HXSH")
+                # 回车
+                time.sleep(1)
+                print(f"回车")
+                element.send_keys(Keys.ENTER)
+                break  # 找到了就退出
+            except Exception as e:
+                driver.save_screenshot('debug_screenshot.png')
+                print(f"❌ 在第 {i+1} 个 iframe 中未找到目标元素: {e}")
+            finally:
+                driver.switch_to.default_content()  # 每次都确保回主文档
+
+
+
+    print(f'测试已经于 {datetime.now()} 开始')
     EAM()
 
     

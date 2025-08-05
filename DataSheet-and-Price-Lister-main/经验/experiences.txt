@@ -1,0 +1,10 @@
+
+在控制台输入如下：
+let elem = $x('//*[@id="textfield-1333-inputEl"]')[0];
+console.log(elem.ownerDocument.defaultView.frameElement);
+如果返回一个 <iframe> 元素，说明此输入框在 iframe 里
+返回 null 说明不在 iframe
+
+### 获取iframe的父元素
+let elem = $x('//*[@id="textfield-1333-inputEl"]')[0];
+console.log(elem.ownerDocument.defaultView.frameElement.parentElement);
