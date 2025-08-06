@@ -50,6 +50,8 @@ from selenium.webdriver.common.keys import Keys
 import time
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.alert import Alert
+from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException
 
 def create_driver():
     """创建并返回一个 Edge 浏览器实例"""
@@ -279,8 +281,24 @@ def get_iframe_and_return(driver, iframe_by, iframe_value, timeout=50):
         print(f"⚠️ 未找到目标元素: {iframe_by}, {iframe_value}")
         driver.switch_to.default_content()
         return None
-   
-        
+
+def init_driver():
+    options = Options()
+    options.add_argument('--start-maximized')
+    service = Service('msedgedriver.exe')  # 替换为你的驱动路径
+    driver = webdriver.Edge(service=service, options=options)
+    return driver
+
+def wait_for_element(driver, by, value, timeout=20):
+    return WebDriverWait(driver, timeout).until(EC.presence_of_element_located((by, value)))
+
+def switch_to_iframe(driver, iframe_index=0):
+    WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it((By.TAG_NAME, "iframe")))
+    iframes = driver.find_elements(By.TAG_NAME, "iframe")
+    if len(iframes) > iframe_index:
+        driver.switch_to.frame(iframes[iframe_index])
+    else:
+        raise Exception("❌ 指定 iframe 索引不存在")
 
 
 
@@ -341,67 +359,57 @@ if __name__ == '__main__':
         
         driver.switch_to.frame(iframe)
 
-        input_box = WebDriverWait(driver, 70).until(
+        input_box_name = WebDriverWait(driver, 70).until(
         EC.presence_of_element_located((By.ID, "textfield-1333-inputEl"))
-        # EC.element_to_be_clickable((By.ID, "textfield-1333-inputEl"))
 )
 
-        # if input_box:
-        #     print("找到了输入框")
-        #     input_box.click()
-        #     time.sleep(5)
-        #     input_box.clear()
-        #     time.sleep(5)
-        #     print("输入文本")
-        #     input_box.send_keys('HXSH')
-        #     time.sleep(5)
-        #     print("回车键")
-        #     input_box.send_keys(Keys.ENTER)
         print('开始输入HXSH')
-        # driver.execute_script("arguments[0].value = 'HXSH';", input_box)
-        # input_box.send_keys(Keys.ENTER)
-        # driver.execute_script("""
-        # var e = new KeyboardEvent('keydown', {
-        #     bubbles: true,
-        #     cancelable: true,
-        #     keyCode: 13
-        # });
-        # arguments[0].dispatchEvent(e);
-        # """, input_box)
-        # trigger_el = driver.find_element(By.ID, "textfield-1333-triggerWrap")
-        # trigger_el.click()
-        # print('输入完成,开始点击')
-        # print('点击 textfield-1333-triggerWrap')
-        # operate_element(driver,By.ID,"textfield-1333-triggerWrap",'click')
-        # print('点击 textfield-1333 Div')
-        # operate_element(driver,By.ID,"textfield-1333",'click')
-        # print('点击 textfield-1333-labelEl Label')
-        # operate_element(driver,By.ID,"textfield-1333-labelEl",'click')
-        # driver.execute_script("""
-        # arguments[0].focus();
-        # arguments[0].value = 'HXSH';
-        # var event = new KeyboardEvent('keydown', {
-        #     bubbles: true,
-        #     cancelable: true,
-        #     key: 'Enter',
-        #     code: 'Enter',
-        #     keyCode: 13,
-        #     which: 13
-        # });
-        # arguments[0].dispatchEvent(event);
-        # """, input_box)
-        # input_box = driver.find_element(By.ID, "textfield-1333-inputEl")
-
+       
         actions = ActionChains(driver)
-        actions.move_to_element(input_box).click()
+        print('输入并点击')
+        actions.move_to_element(input_box_name).click()
+        print('回车')
         actions.send_keys("HXSH").send_keys(Keys.ENTER)
         actions.perform()
         
-        driver.switch_to.default_content()
-       
-      
-    
+        
+        # 找到下拉按钮并点击
+        drop_down_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID,'#uxfilteroperator-1251'))
+)
+        drop_down_btn.click()
 
+        # 选项菜单可能是动态出现，等待选项可点击后点击
+        less_than_or_equals = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, '#menuitem-1256'))
+        )
+        less_than_or_equals.click()
+
+        # 找到输入框
+        input_box = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '#uxdate-1261-inputEl'))
+        )
+
+        # 清空并输入日期
+        input_box.clear()
+        input_box.send_keys('2025-08-06')
+
+        # 触发输入事件和回车，Selenium 不直接触发 JS 事件，但 send_keys 会触发大多数事件
+        input_box.send_keys(Keys.ENTER)
+    # input_box.send_keys(Keys.RETURN)
+    #日期类型 2025-08-06
+        # schedule end date 筛选
+        # value
+        """
+        print('开始定位日期输入框')
+        input_box_endDate = WebDriverWait(driver, 70).until(
+        EC.presence_of_element_located((By.ID, "uxdate-1261-inputEl"))
+        )
+        print('找到输入日期框')
+
+        # 回到默认内容
+        # driver.switch_to.default_content()
+        """
     print(f'测试已经于 {datetime.now()} 开始')
     EAM()
 
