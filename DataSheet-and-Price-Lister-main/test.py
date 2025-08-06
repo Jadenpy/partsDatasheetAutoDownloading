@@ -375,9 +375,20 @@ if __name__ == '__main__':
         
         # 找到下拉按钮并点击
         drop_down_btn = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID,'#uxfilteroperator-1251'))
-)
-        drop_down_btn.click()
+            EC.presence_of_element_located((By.XPATH,'//*[@id="uxfilteroperator-1251"]'))
+)       
+        time.sleep(2)
+        if drop_down_btn:
+            print('找到下拉按钮')
+            drop_down_btn.click()
+        # actions = ActionChains(driver)
+        # print('点击')
+        # actions.move_to_element(drop_down_btn).click()
+        # # print('回车')
+        # # actions.send_keys("HXSH").send_keys(Keys.ENTER)
+        # actions.perform()
+
+        # drop_down_btn.click()
 
         # 选项菜单可能是动态出现，等待选项可点击后点击
         less_than_or_equals = WebDriverWait(driver, 10).until(
