@@ -46,7 +46,10 @@ if (inputBoxDate) {
 
 
 
-// 对第一个工单进行操作
+// 对第一个工单进行操作   '#tableview-1103-record-452 > tbody > tr'      规律   #tableview-1103-record-453    #tableview-1103-record-454  #tableview-1103-record-455    ....... #tableview-1103-record-465
+// 问题： 1.  获取的规律
+//        2.  #tableview下的结构
+//        3.  #tableview-1103 > div.x-grid-item-container  这个容器下有多少个tabview(工单)
 // 双击
 const el = document.querySelector('#tableview-1103-record-452 > tbody > tr');
 if (el) {
@@ -66,14 +69,14 @@ if (input) {
     console.log('📥 输入框的值是：', input.value);
 } else {
     console.log('❌ 没找到 input 元素');
-} 
+}
 // 结束日期 #uxdate-1413-inputEl
 const input = document.querySelector('#uxdate-1413-inputEl'); // 替换为你的选择器
 if (input) {
     console.log('📥 输入框的值是：', input.value);
 } else {
     console.log('❌ 没找到 input 元素');
-} 
+}
 // 工时  #uxnumber-1425-inputEl
 
 

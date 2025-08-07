@@ -35,7 +35,7 @@ def open_url(driver, url):
 #     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
 #     elem.click()
 
-def operate_element(driver, by, value, action, input_text=None, timeout=60, tag_comment=None, if_scroll= False):
+def operate_element(driver, by, value, action, input_text=None, timeout=70, tag_comment=None, if_scroll= False):
     """
     通用元素操作函数
 
@@ -337,15 +337,54 @@ if __name__ == '__main__':
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"))
             # 找到输入框
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-06',tag_comment="日期输入框"))
-        
+            # 浏览器切换到默认内容
+            # print("切换到默认内容")
+            # driver.switch_to.default_content()
+            # 对工单的处理  比方：打印所有工单的信息
+            # 1. 找出所有工单表格（table）
+            try:
+                print("获取工单列表：")
+                # //*[@id="tableview-1103"]/div[3]
+                tables = driver.find_elements(By.XPATH, '//table[starts-with(@id, "tableview-1103-record-")]')
+                all_orders = []  # 用于存放所有工单的内容     
+                if tables:
+                    with open('工单.html', 'w', encoding='utf-8') as f:
+                        # 遍历列表并将每个表格的HTML写入文件
+                        for index, table in enumerate(tables, start=1):
+                            try:
+                                # 获取表格完整HTML
+                                table_html = table.get_attribute('outerHTML')
+                                
+                                # 写入标识和表格HTML（格式与打印时一致，便于阅读）
+                                f.write(f"===== 第 {index} 个表格的HTML =====\n")
+                                f.write(table_html + "\n")
+                                f.write("-"*50 + "\n\n")  # 分隔线
+                                
+                                # 可选：同时在控制台打印进度
+                                print(f"已保存第 {index} 个表格到文件")
+                            except Exception as e:
+                                error_msg = f"获取第 {index} 个表格的HTML时出错：{e}\n"
+                                f.write(error_msg)  # 将错误信息也写入文件
+                                print(error_msg)  # 将错误信息也打印到控制台
+                else:
+                    print("未找到工单表格")
+                
+
+                
+            except Exception as e:
+                print(f"🚫 获取工单列表时捕获异常：{e}，已终止")
+                return
+
             # 回到默认内容
             # driver.switch_to.default_content()
         except Exception as e:
             print(f"🚫 EAM函数捕获异常：{e}，已终止")
             return  # ← 退出主函数（也可以改成 raise 继续向上传递）
-       
+        
     print(f'测试已经于 {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} 开始')
     EAM()
+
+    # /html/body/div[1]/div/div/div/div/div/div/div[3]/div[1]/div/div/div/div/div/div[4]/div/div[3]/table[1]
 
     
     
