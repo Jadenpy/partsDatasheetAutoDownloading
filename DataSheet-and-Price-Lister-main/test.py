@@ -345,36 +345,142 @@ if __name__ == '__main__':
             try:
                 print("获取工单列表：")
                 # //*[@id="tableview-1103"]/div[3]
-                tables = driver.find_elements(By.XPATH, '//table[starts-with(@id, "tableview-1103-record-")]')
-                all_orders = []  # 用于存放所有工单的内容     
-                if tables:
-                    with open('工单.html', 'w', encoding='utf-8') as f:
-                        # 遍历列表并将每个表格的HTML写入文件
-                        for index, table in enumerate(tables, start=1):
-                            try:
-                                # 获取表格完整HTML
-                                table_html = table.get_attribute('outerHTML')
+                # //*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-")]     and contains(@class, "x-grid-item") and not(contains(@class, "x-grid-item-alt"))
+                # wait = WebDriverWait(driver, 10)  # 最多等10秒
+                # wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-record-")]')))
+                # tables = driver.find_elements(By.XPATH, '//*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-record-")]')
+                """
+                # all_orders = []  # 用于存放所有工单的内容     
+                # if tables:
+                    
+                #     print(f"可见表格数量: {len(tables)}")
+                #     with open('工单.html', 'w', encoding='utf-8') as f:
+                #         # 遍历列表并将每个表格的HTML写入文件
+                #         for index, table in enumerate(tables, start=1):
+                #             try:
+                #                 # 获取表格完整HTML
+                #                 table_html = table.get_attribute('outerHTML')
                                 
-                                # 写入标识和表格HTML（格式与打印时一致，便于阅读）
-                                f.write(f"===== 第 {index} 个表格的HTML =====\n")
-                                f.write(table_html + "\n")
-                                f.write("-"*50 + "\n\n")  # 分隔线
+                #                 # 写入标识和表格HTML（格式与打印时一致，便于阅读）
+                #                 f.write(f"===== 第 {index} 个表格的HTML =====\n")
+                #                 f.write(table_html + "\n")
+                #                 f.write("-"*50 + "\n\n")  # 分隔线
                                 
-                                # 可选：同时在控制台打印进度
-                                print(f"已保存第 {index} 个表格到文件")
-                            except Exception as e:
-                                error_msg = f"获取第 {index} 个表格的HTML时出错：{e}\n"
-                                f.write(error_msg)  # 将错误信息也写入文件
-                                print(error_msg)  # 将错误信息也打印到控制台
-                else:
-                    print("未找到工单表格")
-                
+                #                 # 可选：同时在控制台打印进度
+                #                 print(f"已保存第 {index} 个表格到文件")
+                #             except Exception as e:
+                #                 error_msg = f"获取第 {index} 个表格的HTML时出错：{e}\n"
+                #                 f.write(error_msg)  # 将错误信息也写入文件
+                #                 print(error_msg)  # 将错误信息也打印到控制台
+                # else:
+                #     print("未找到工单表格")
+                # for index, table in enumerate(tables, start=1):
+            # 获取工单列表  for index, table in enumerate(tables, start=1):
+                    # try:
+                    #     # 找到这一行tr（这里只有一行）
+                    #     tr = table.find_element(By.TAG_NAME, 'tr')
+                    #     # 找到所有td元素（顺序对应你的注释）
+                    #     tds = tr.find_elements(By.TAG_NAME, 'td')
 
-                
+                    #     # 按注释提取文本，去掉多余空白，替换转义字符 &nbsp; 为普通空格
+                    #     def get_td_text(i):
+                    #         # div 里面有文本
+                    #         div = tds[i].find_element(By.TAG_NAME, 'div')
+                    #         text = div.text.strip().replace('\xa0', ' ').replace('&nbsp;', ' ')
+                    #         return text
+
+                    #     print(f"工单 {index} 信息：")
+                    #     print(f"  工单号: {get_td_text(0)}")
+                    #     # print(f"  ？？？: {get_td_text(1)}")
+                    #     print(f"  设备代码: {get_td_text(2)}")
+                    #     print(f"  工单描述: {get_td_text(3)}")
+                    #     print(f"  工单开启日期: {get_td_text(4)}")
+                    #     print(f"  工单超期日期: {get_td_text(5)}")
+                    #     print(f"  工单状态: {get_td_text(6)}")
+                    #     print(f"  设备所属成本中心: {get_td_text(7)}")
+                    #     print(f"  所属部门: {get_td_text(8)}")
+                    #     # print(f"  所属的资产: {get_td_text(9)}")
+                    #     # print(f"  空白字段: {get_td_text(10)}")
+                    #     print(f"  所属人员: {get_td_text(11)}")
+                    #     print(f"  工单类型: {get_td_text(12)}")
+                    #     print(f"  工单重要程度: {get_td_text(13)}")
+                    #     print(f"  所属工厂: {get_td_text(14)}")
+                    #     print("-" * 50)
+                    # except Exception as e:
+                    #     print(f"解析第 {index} 个工单时出错")
+                    #     # raise e
+                # # for index, table in enumerate(tables, start=1):
+                #     time.sleep(1)
+                #     try:
+                #         tr = table.find_element(By.TAG_NAME, 'tr')
+                #         tds = tr.find_elements(By.TAG_NAME, 'td')
+                #         if tds:
+                #             print(f"工单 {index} 共有 {len(tds)} 列")
+                #             for i, td in enumerate(tds):
+                #                 div = td.find_element(By.TAG_NAME, 'div')
+                #                 text = div.text.strip().replace('\xa0', ' ').replace('&nbsp;', ' ')
+                #                 print(f"  td[{i}]: {text}")
+                #             print("-" * 50)
+                #         else:
+                #             print(f"工单 {index} 没有列")
+                #     except Exception as e:
+                #         print(f"解析第 {index} 个工单时出错")
+      """
+                container = driver.find_element(By.XPATH, '//*[@id="tableview-1103"]/div[3]')
+                if container:
+                    print("container found")
+                seen_ids = set()
+                while True:
+                    # 获取当前已渲染的 table
+                    tables = container.find_elements(By.XPATH, './/table[starts-with(@id, "tableview-1103-record-")]')
+                    if tables:
+                        print(f"tables found, 共有 {len(tables)} 个")
+                        new_found = False
+
+                        for table in tables:
+                            table_id = table.get_attribute("id")
+                            if table_id not in seen_ids:
+                                seen_ids.add(table_id)
+                                try:
+                                    cells = table.find_elements(By.TAG_NAME, "td")
+                                    print(f"工单 {len(seen_ids)} 信息：")
+                                    print(f"  工单号: {cells[0].text.strip()}")
+                                    print(f"  设备代码: {cells[2].text.strip()}")
+                                    print(f"  工单描述: {cells[3].text.strip()}")
+                                    print(f"  工单开启日期: {cells[4].text.strip()}")
+                                    print(f"  工单超期日期: {cells[5].text.strip()}")
+                                    print(f"  工单状态: {cells[6].text.strip()}")
+                                    print(f"  设备所属成本中心: {cells[7].text.strip()}")
+                                    print(f"  所属部门: {cells[8].text.strip()}")
+                                    print(f"  所属人员: {cells[11].text.strip()}")
+                                    print(f"  工单类型: {cells[12].text.strip()}")
+                                    print(f"  工单重要程度: {cells[13].text.strip()}")
+                                    print(f"  所属工厂: {cells[14].text.strip()}")
+                                    print("-" * 50)
+                                except Exception as e:
+                                    print(f"解析工单 {len(seen_ids)} 时出错: {e}")
+                                new_found = True
+
+                    # 滚动到底部（让页面加载更多数据）
+                    ActionChains(driver).move_to_element(tables[-1]).perform()
+                    time.sleep(1)  # 等待新数据渲染
+
+                    # 如果没有新 table 出现，则退出循环
+                    if not new_found:
+                        break
+
+                print(f"共抓取到 {len(seen_ids)} 个工单")
+
+
+        # for index, table in enumerate(tables, start=1):   
+
+
+
+            # 获取工单列表
             except Exception as e:
                 print(f"🚫 获取工单列表时捕获异常：{e}，已终止")
                 return
-
+            
             # 回到默认内容
             # driver.switch_to.default_content()
         except Exception as e:
