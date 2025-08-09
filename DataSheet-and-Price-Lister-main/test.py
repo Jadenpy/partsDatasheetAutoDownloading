@@ -35,7 +35,7 @@ def open_url(driver, url):
 #     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
 #     elem.click()
 
-def operate_element(driver, by, value, action, input_text=None, timeout=70, tag_comment=None, if_scroll= False):
+def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_comment=None, if_scroll= False):
     """
     通用元素操作函数
 
@@ -116,7 +116,7 @@ def operate_element(driver, by, value, action, input_text=None, timeout=70, tag_
         # print(f"❌ 执行操作时出错: {e}")
         raise
 
-def auto_retry(func, retries=3, wait=2):
+def auto_retry(func, retries=3, wait=2,driver=None):
 
     """
     Retry any function if it raises an exception.
@@ -137,6 +137,7 @@ def auto_retry(func, retries=3, wait=2):
             print(f"⚠️ 尝试 {attempt} 失败: {e}, 等待 {wait} 秒后重试...{datetime.now().strftime('%H:%M:%S')}")
             if attempt < retries:
                 time.sleep(wait)
+                # driver.refresh()
             else:
                 print(f'❌尝试 {retries} 次后仍然失败，请检查元素是否加载完成。{datetime.now().strftime("%H:%M:%S")}')
                 # return None
@@ -322,21 +323,21 @@ if __name__ == '__main__':
             # 打开指定的 URL
             open_url(driver, "https://myeric.textron.com/")
             # 点击 EAM a Tag
-            auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="MyTools"]/div/ul/li[7]/a', 'click',tag_comment="EAM Tag"))
+            auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="MyTools"]/div/ul/li[7]/a', 'click',tag_comment="EAM Tag"),driver=driver)
             # Tab 跳转
             handle_new_tab(driver)
             # 进入EAM页面后，等待页面加载,并点击 order a Tag     //*[@id="tab-1052"]
-            auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="tab-1052"]', 'click',tag_comment="WO Tag"))
+            auto_retry(lambda: operate_element(driver, By.XPATH, '//*[@id="tab-1052"]', 'click',tag_comment="WO Tag"),driver=driver)
             
             driver = get_iframe_and_return(driver,By.ID,"uxtabiframe-1040-iframeEl")
             #       !!!重点： CSS_SELECTOR 可以找到元素，且可以点击，但是XPATH不行，报警不可点击
-            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#textfield-1333-inputEl','send_keys_and_enter','HXSH',tag_comment="人员姓名输入框",if_scroll=True))
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#textfield-1333-inputEl','send_keys_and_enter','HXSH',tag_comment="人员姓名输入框",if_scroll=True),driver=driver)
             # 找到下拉按钮并点击
-            auto_retry(lambda: operate_element(driver,By.XPATH,'//*[@id="uxfilteroperator-1251"]','click',tag_comment="日期筛选条件下拉按钮"))
+            auto_retry(lambda: operate_element(driver,By.XPATH,'//*[@id="uxfilteroperator-1251"]','click',tag_comment="日期筛选条件下拉按钮"),driver=driver)
             # 找到 <= 选项并点击
-            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"))
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
             # 找到输入框
-            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-06',tag_comment="日期输入框"))
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-06',tag_comment="日期输入框"),driver=driver)
             # 浏览器切换到默认内容
             # print("切换到默认内容")
             # driver.switch_to.default_content()
@@ -426,6 +427,7 @@ if __name__ == '__main__':
                 #     except Exception as e:
                 #         print(f"解析第 {index} 个工单时出错")
       """
+                """
                 container = driver.find_element(By.XPATH, '//*[@id="tableview-1103"]/div[3]')
                 if container:
                     print("container found")
@@ -470,9 +472,73 @@ if __name__ == '__main__':
                         break
 
                 print(f"共抓取到 {len(seen_ids)} 个工单")
-
-
+                """
         # for index, table in enumerate(tables, start=1):   
+                container = driver.find_element(By.XPATH, '//*[@id="tableview-1103"]/div[3]')
+                if container:
+                    print("container found")
+
+                seen_ids = set()
+
+                while True:
+                    # 每次都重新获取 tables
+                    tables = container.find_elements(
+                        By.XPATH, './/table[starts-with(@id, "tableview-1103-record-") and contains(@class, "x-grid-item")]'
+                    )
+                    print(f"tables found, 当前渲染 {len(tables)} 个")
+
+                    new_found = False
+
+                    for idx in range(len(tables)):  # 用索引重新 find，避免 stale
+                        table = container.find_elements(
+                            By.XPATH, './/table[starts-with(@id, "tableview-1103-record-") and contains(@class, "x-grid-item")]'
+                        )[idx]
+                        
+                        table_id = table.get_attribute("id")
+                        if table_id not in seen_ids:
+                            seen_ids.add(table_id)
+                            try:
+                                cells = table.find_elements(By.TAG_NAME, "td")
+                                print(f"工单 {len(seen_ids)} 信息：")
+                                print(f"  工单号: {cells[0].text.strip()}")
+                                print(f"  设备代码: {cells[2].text.strip()}")
+                                print(f"  工单描述: {cells[3].text.strip()}")
+                                print(f"  工单开启日期: {cells[4].text.strip()}")
+                                print(f"  工单超期日期: {cells[5].text.strip()}")
+                                print(f"  工单状态: {cells[6].text.strip()}")
+                                print(f"  设备所属成本中心: {cells[7].text.strip()}")
+                                print(f"  所属部门: {cells[8].text.strip()}")
+                                print(f"  所属人员: {cells[11].text.strip()}")
+                                print(f"  工单类型: {cells[12].text.strip()}")
+                                print(f"  工单重要程度: {cells[13].text.strip()}")
+                                print(f"  所属工厂: {cells[14].text.strip()}")
+                                print("-" * 50)
+                            except Exception as e:
+                                print(f"解析工单 {len(seen_ids)} 时出错: {e}")
+                            new_found = True
+
+                    # 滚动到最后一个已加载的工单
+                    last_table = container.find_elements(
+                        By.XPATH, './/table[starts-with(@id, "tableview-1103-record-") and contains(@class, "x-grid-item")]'
+                    )[-1]
+                    ActionChains(driver).move_to_element(last_table).perform()
+
+                    # 等待新表格出现
+                    try:
+                        WebDriverWait(driver, 3).until(
+                            lambda d: len(container.find_elements(
+                                By.XPATH, './/table[starts-with(@id, "tableview-1103-record-") and contains(@class, "x-grid-item")]'
+                            )) > len(seen_ids)
+                        )
+                    except:
+                        pass
+
+                    time.sleep(0.5)
+
+                    if not new_found:
+                        break
+
+                print(f"共抓取到 {len(seen_ids)} 个工单")
 
 
 
