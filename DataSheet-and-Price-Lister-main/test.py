@@ -333,16 +333,17 @@ if __name__ == '__main__':
             #       !!!重点： CSS_SELECTOR 可以找到元素，且可以点击，但是XPATH不行，报警不可点击
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#textfield-1333-inputEl','send_keys_and_enter','HXSH',tag_comment="人员姓名输入框",if_scroll=True),driver=driver)
             # 找到下拉按钮并点击
-            # auto_retry(lambda: operate_element(driver,By.XPATH,'//*[@id="uxfilteroperator-1251"]','click',tag_comment="日期筛选条件下拉按钮"),driver=driver)
+            auto_retry(lambda: operate_element(driver,By.XPATH,'//*[@id="uxfilteroperator-1251"]','click',tag_comment="日期筛选条件下拉按钮"),driver=driver)
             # 找到 <= 选项并点击
-            # auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
             # 找到输入框
-            # auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-06',tag_comment="日期输入框"),driver=driver)
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-06',tag_comment="日期输入框"),driver=driver)
             # 浏览器切换到默认内容
             # print("切换到默认内容")
             # driver.switch_to.default_content()
             # 对工单的处理  比方：打印所有工单的信息
             # 1. 找出所有工单表格（table）
+            time.sleep(10)
             try:
                 print("获取工单列表：")
                 # //*[@id="tableview-1103"]/div[3]
@@ -350,12 +351,12 @@ if __name__ == '__main__':
                 wait = WebDriverWait(driver, 10)  # 最多等10秒
                 wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-record-")]')))
                 tables = driver.find_elements(By.XPATH, '//*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-record-")]')
-                time.sleep(10)
+                
                 all_orders = []  # 用于存放所有工单的内容     
                 if tables:
                     
                     print(f"可见表格数量: {len(tables)}")
-                    with open('工单0809.html', 'w', encoding='utf-8') as f:
+                    with open('工单0810.html', 'w', encoding='utf-8') as f:
                         # 遍历列表并将每个表格的HTML写入文件
                         for index, table in enumerate(tables, start=1):
                             try:
