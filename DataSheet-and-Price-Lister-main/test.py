@@ -343,7 +343,7 @@ if __name__ == '__main__':
             # driver.switch_to.default_content()
             # 对工单的处理  比方：打印所有工单的信息
             # 1. 找出所有工单表格（table）
-            time.sleep(10)
+            time.sleep(5)
             try:
                 print("获取工单列表：")
                 # //*[@id="tableview-1103"]/div[3]
