@@ -72,31 +72,39 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
             element = wait.until(EC.element_to_be_clickable((by, value)))
         if element:
             print(f"{datetime.now().strftime('%H:%M:%S')},元素出现")
-        time.sleep(1)
+        time.sleep(0.5)
         if action == 'click':
             element.click()
+            time.sleep(0.5)
             if tag_comment:
                 print(f"已经点击元素{tag_comment}")
             else:
                 print(f"已经点击元素{value}")
         elif action == 'send_keys':
+            element.click()
+            time.sleep(0.5)
             element.clear()
+            
             element.send_keys(input_text)
+            time.sleep(0.5)
             if tag_comment:
                 print(f"在元素{tag_comment}已输入{input_text}")
             else:
                 print(f"在元素{value}已输入{input_text}")           
         elif action == 'send_keys_and_enter':
             element.clear()
+            time.sleep(0.5)
             element.send_keys(input_text)
-            time.sleep(1)
+            time.sleep(0.5)
             element.send_keys(Keys.ENTER)
+            time.sleep(0.5)
             if tag_comment:
                 print(f"在元素{tag_comment}已输入{input_text}并回车")
             else:
                 print(f"在元素{value}已输入{input_text}并回车")
         elif action == 'clear':
             element.clear()
+            time.sleep(0.5)
             if tag_comment:
                 print(f"已清空元素{tag_comment} 的内容")
             else:
@@ -337,7 +345,7 @@ if __name__ == '__main__':
             # 找到 <= 选项并点击
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
             # 找到输入框
-            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-06',tag_comment="日期输入框"),driver=driver)
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-07-01',tag_comment="日期输入框"),driver=driver)
             # 浏览器切换到默认内容
             # print("切换到默认内容")
             # driver.switch_to.default_content()
@@ -437,6 +445,12 @@ if __name__ == '__main__':
                     text_laborHour = element.get_attribute('value')
                     print(f"工时为: {text_laborHour}")
 
+                    # 获取end date   //*[@id="uxdate-1413-inputEl"]
+                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="uxdate-1413-inputEl"]')))
+                    element = driver.find_element(By.XPATH, '//*[@id="uxdate-1413-inputEl"]')
+                    text_endDate = element.get_attribute('value')
+                    print(f"结束日期为: {text_endDate}")
+
                     #点击Book labor 标签      //*[@id="tab-1166-btnInnerEl"] 
                     wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tab-1166-btnInnerEl"]')))
                     driver.find_element(By.XPATH, '//*[@id="tab-1166-btnInnerEl"]').click()
@@ -446,26 +460,22 @@ if __name__ == '__main__':
                     operate_element(driver,By.XPATH, '//*[@id="lovmultiselectfield-1667-inputEl"]','send_keys','HXSH',tag_comment='工单信息--人员')
                     # 工单信息-- 使用工时  //*[@id="uxnumber-1670-inputEl"]
                     operate_element(driver,By.XPATH, '//*[@id="uxnumber-1670-inputEl"]','send_keys',text_laborHour,tag_comment='工单信息-- 使用工时')
-                    # 工单信息-- 执行日期 //*[@id="uxdate-1671-inputEl"]
-                    operate_element(driver,By.XPATH, '//*[@id="uxdate-1671-inputEl"]','send_keys',time.strftime('%Y-%m-%d', time.localtime()),tag_comment='工单信息-- 执行日期')
+                    # 工单信息-- 执行日期 //*[@id="uxdate-1671-inputEl"]   time.strftime('%Y-%m-%d' time.localtime()),
+                    operate_element(driver,By.XPATH, '//*[@id="uxdate-1671-inputEl"]','send_keys',text_endDate,tag_comment='工单信息-- 执行日期')
 
                     # 点击保存按钮 //*[@id="button-1652-btnIconEl"]
                     operate_element(driver,By.XPATH, '//*[@id="button-1652-btnIconEl"]','click',tag_comment='点击保存按钮')
                    
-
-                    # 等待保存完成（比如等待提示框出现或弹窗消失）
-                   
-
+                    # 点击 record save 按钮  //*[@id="button-1033-btnIconEl"]
+                    operate_element(driver,By.XPATH, '//*[@id="button-1033-btnIconEl"]','click',tag_comment='点击 record save 按钮')
                     print(f"第 {index} 个工单处理完成")
 
-                    # # 返回列表页
-                    # driver.back()
-
-                    # # 等待表格重新出现
-                    # WebDriverWait(driver, 10).until(
-                    #     EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tableview-1103"]/div[3]//table'))
-                    # )
-
+                    #双击左侧边栏 返回列表页   //*[@id="panel-1093-splitter"]
+                    slide_bar = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="panel-1093-splitter"]')))
+                    ActionChains(driver).double_click(slide_bar).perform()
+                    
+                    time.sleep(0.5)
+               
           
             except Exception as e:
                 print(f"🚫 第 {index} 个工单输入失败: {e}")
