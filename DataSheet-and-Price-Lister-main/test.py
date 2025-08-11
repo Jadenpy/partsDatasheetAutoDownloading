@@ -352,11 +352,12 @@ if __name__ == '__main__':
                 wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-record-")]')))
                 tables = driver.find_elements(By.XPATH, '//*[@id="tableview-1103"]/div[3]//table[starts-with(@id, "tableview-1103-record-")]')
                 
-                all_orders = []  # 用于存放所有工单的内容     
+                 # all_orders = []  # 用于存放所有工单的内容     
                 if tables:
                     
                     print(f"可见表格数量: {len(tables)}")
-                    with open('工单0810.html', 'w', encoding='utf-8') as f:
+                    # 文件名   '工单'+time.strftime('%m%d', time.localtime())+'.html'
+                    with open('工单'+time.strftime('%m%d')+'.html', 'w', encoding='utf-8') as f:
                         # 遍历列表并将每个表格的HTML写入文件
                         for index, table in enumerate(tables, start=1):
                             try:
@@ -414,7 +415,61 @@ if __name__ == '__main__':
             except Exception as e:
                 print(f"🚫 获取第 {index} 个工单时出错")
                 raise e
-           
+
+            # 工单展开进行处理
+            try:
+                wait = WebDriverWait(driver, 10)
+                
+                for index, table in enumerate(tables, start=1):
+             
+                    print(f"正在处理第 {index} 个工单...")
+
+                    # 点击当前工单（进入详情）  双击执行
+                    ActionChains(driver).double_click(table).perform()
+                    
+                    # 获取xpath为//*[@id="uxnumber-1425-inputEl"] input元素的文本
+                    
+                    # 等待元素加载
+                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="uxnumber-1425-inputEl"]')))
+                    # 获取元素
+                    element = driver.find_element(By.XPATH, '//*[@id="uxnumber-1425-inputEl"]')
+                    # 获取文本
+                    text_laborHour = element.get_attribute('value')
+                    print(f"工时为: {text_laborHour}")
+
+                    #点击Book labor 标签      //*[@id="tab-1166-btnInnerEl"] 
+                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tab-1166-btnInnerEl"]')))
+                    driver.find_element(By.XPATH, '//*[@id="tab-1166-btnInnerEl"]').click()
+
+                    # 工单信息
+                    # 工单信息--人员  //*[@id="lovmultiselectfield-1667-inputEl"]
+                    operate_element(driver,By.XPATH, '//*[@id="lovmultiselectfield-1667-inputEl"]','send_keys','HXSH',tag_comment='工单信息--人员')
+                    # 工单信息-- 使用工时  //*[@id="uxnumber-1670-inputEl"]
+                    operate_element(driver,By.XPATH, '//*[@id="uxnumber-1670-inputEl"]','send_keys',text_laborHour,tag_comment='工单信息-- 使用工时')
+                    # 工单信息-- 执行日期 //*[@id="uxdate-1671-inputEl"]
+                    operate_element(driver,By.XPATH, '//*[@id="uxdate-1671-inputEl"]','send_keys',time.strftime('%Y-%m-%d', time.localtime()),tag_comment='工单信息-- 执行日期')
+
+                    # 点击保存按钮 //*[@id="button-1652-btnIconEl"]
+                    operate_element(driver,By.XPATH, '//*[@id="button-1652-btnIconEl"]','click',tag_comment='点击保存按钮')
+                   
+
+                    # 等待保存完成（比如等待提示框出现或弹窗消失）
+                   
+
+                    print(f"第 {index} 个工单处理完成")
+
+                    # # 返回列表页
+                    # driver.back()
+
+                    # # 等待表格重新出现
+                    # WebDriverWait(driver, 10).until(
+                    #     EC.presence_of_all_elements_located((By.XPATH, '//*[@id="tableview-1103"]/div[3]//table'))
+                    # )
+
+          
+            except Exception as e:
+                print(f"🚫 第 {index} 个工单输入失败: {e}")
+                raise e
             
             # 回到默认内容
             # driver.switch_to.default_content()
