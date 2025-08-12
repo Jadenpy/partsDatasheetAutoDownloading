@@ -72,39 +72,39 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
             element = wait.until(EC.element_to_be_clickable((by, value)))
         if element:
             print(f"{datetime.now().strftime('%H:%M:%S')},元素出现")
-        time.sleep(0.5)
+        time.sleep(0.2)
         if action == 'click':
             element.click()
-            time.sleep(0.5)
+            time.sleep(0.2)
             if tag_comment:
                 print(f"已经点击元素{tag_comment}")
             else:
                 print(f"已经点击元素{value}")
         elif action == 'send_keys':
             element.click()
-            time.sleep(0.5)
+            time.sleep(0.2)
             element.clear()
             
             element.send_keys(input_text)
-            time.sleep(0.5)
+            time.sleep(0.2)
             if tag_comment:
                 print(f"在元素{tag_comment}已输入{input_text}")
             else:
                 print(f"在元素{value}已输入{input_text}")           
         elif action == 'send_keys_and_enter':
             element.clear()
-            time.sleep(0.5)
+            time.sleep(0.2)
             element.send_keys(input_text)
-            time.sleep(0.5)
+            time.sleep(0.2)
             element.send_keys(Keys.ENTER)
-            time.sleep(0.5)
+            time.sleep(0.2)
             if tag_comment:
                 print(f"在元素{tag_comment}已输入{input_text}并回车")
             else:
                 print(f"在元素{value}已输入{input_text}并回车")
         elif action == 'clear':
             element.clear()
-            time.sleep(0.5)
+            time.sleep(0.2)
             if tag_comment:
                 print(f"已清空元素{tag_comment} 的内容")
             else:
@@ -437,21 +437,22 @@ if __name__ == '__main__':
                     
                     # 获取xpath为//*[@id="uxnumber-1425-inputEl"] input元素的文本
                     
-                    # 等待元素加载
+                    # 等待元素加载  在当前元素下面定位开头为uxnumber-的input元素    './/input[starts-with(@id, "uxnumber-")]'
+
                     wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="uxnumber-1425-inputEl"]')))
-                    # 获取元素
-                    element = driver.find_element(By.XPATH, '//*[@id="uxnumber-1425-inputEl"]')
+                    # 获取元素   '//*[matches(@id, "^uxnumber-[0-9]+-inputEl$")]'
+                    element = driver.find_element(By.XPATH, '//*[matches(@id, "^uxnumber-[0-9]+-inputEl$")]')
                     # 获取文本
                     text_laborHour = element.get_attribute('value')
                     print(f"工时为: {text_laborHour}")
 
-                    # 获取end date   //*[@id="uxdate-1413-inputEl"]
-                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="uxdate-1413-inputEl"]')))
+                    # 获取end date   //*[@id="uxdate-1413-inputEl"]     '//*[matches(@id, "uxdate-[0-9]+-inputEl")]'
+                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[matches(@id, "uxdate-[0-9]+-inputEl")]')))
                     element = driver.find_element(By.XPATH, '//*[@id="uxdate-1413-inputEl"]')
                     text_endDate = element.get_attribute('value')
                     print(f"结束日期为: {text_endDate}")
 
-                    #点击Book labor 标签      //*[@id="tab-1166-btnInnerEl"] 
+                    #点击Book labor 标签      //*[@id="tab-1166-btnInnerEl"]     '//*[matches(@id, "tab-[0-9]+-btnInnerEl")]'
                     wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tab-1166-btnInnerEl"]')))
                     driver.find_element(By.XPATH, '//*[@id="tab-1166-btnInnerEl"]').click()
 
