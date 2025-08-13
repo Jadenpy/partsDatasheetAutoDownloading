@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.alert import Alert
-from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException
+from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException,TimeoutException
 
 def create_driver():
     """创建并返回一个 Edge 浏览器实例"""
@@ -117,7 +117,14 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
             return element.text
         elif action.startswith("get_attribute:"):
             attr = action.split(":", 1)[1]
-            return element.get_attribute(attr)
+            attr_value = element.get_attribute(attr)
+            if tag_comment:
+                print(f"已返回元素{tag_comment} 的内容")
+                print(f"元素{tag_comment} 的属性{attr}的值为: {attr_value}")
+            else:
+                print(f"已返回元素{value} 的内容")
+                print(f"元素{value} 的属性{attr}的值为: {attr_value}")
+            return attr_value
         else:
             print(f"❌ 未知的操作: {action}")
     except Exception as e:
@@ -290,6 +297,97 @@ def get_iframe_and_return(driver, iframe_by, iframe_value, timeout=50):
         return None
 
 
+def operate_chain(driver, target_by, target_value, action, 
+                  wait_time=10, input_text=None, drag_to=None, hold_seconds=1):
+    """
+    使用 ActionChains 执行指定动作（高鲁棒性）
+    
+    参数:
+    - driver: Selenium WebDriver
+    - target_by: 定位方式（By.ID / By.XPATH / By.CSS_SELECTOR 等）
+    - target_value: 定位值
+    - action: 字符串动作名
+        支持:
+        "click"         - 单击
+        "double-click"  - 双击
+        "right-click"   - 右键
+        "hover"         - 悬停
+        "click-hold"    - 按住（hold_seconds 秒）
+        "drag"          - 拖拽到另一个元素（需传 drag_to）
+        "send-keys"     - 输入文字（需传 input_text）
+    - wait_time: 显式等待时间
+    - input_text: 输入文字内容（send-keys 用）
+    - drag_to: 拖拽目标 WebElement（drag 用）
+    - hold_seconds: click-hold 按住时长（秒）
+    """
+    try:
+        wait = WebDriverWait(driver, wait_time)
+        element = wait.until(EC.presence_of_element_located((target_by, target_value)))
+        element = wait.until(EC.element_to_be_clickable((target_by, target_value)))
+
+        # 滚动到可见位置（避免 out of bounds）
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+        time.sleep(0.2)
+
+        actions = ActionChains(driver)
+
+        if action == "click":
+            actions.move_to_element(element).click()
+
+        elif action == "double-click":
+            actions.move_to_element(element).double_click()
+
+        elif action == "right-click":
+            actions.move_to_element(element).context_click()
+
+        elif action == "hover":
+            actions.move_to_element(element)
+
+        elif action == "click-hold":
+            actions.move_to_element(element).click_and_hold()
+            time.sleep(hold_seconds)
+            actions.release()
+
+        elif action == "drag":
+            if drag_to is None:
+                raise ValueError("drag 动作必须提供 drag_to 参数")
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", drag_to)
+            actions.drag_and_drop(element, drag_to)
+
+        elif action == "send-keys":
+            if input_text is None:
+                raise ValueError("send-keys 动作必须提供 input_text 参数")
+            actions.move_to_element(element).click().send_keys(input_text)
+
+        else:
+            raise ValueError(f"不支持的动作: {action}")
+
+        # 一次性执行所有动作
+        actions.perform()
+        # return element
+
+    except TimeoutException:
+        print(f"❌ 等待元素超时: {target_by} = {target_value}")
+    except Exception as e:
+        print(f"❌ 执行动作链出错: {e}")
+
+
+# Selenium 4.3 模糊匹配 XPath 映射
+locators = {
+    # ===== 工单字段输入类 =====
+    "start_date": '//*[@id="uxdate-1412-inputEl"]',
+    "end_date": '//*[@id="uxdate-1413-inputEl"]',
+    "assigned_to": '//*[@id="lovfield-1414-inputEl"]',
+    "status": '//*[@id="uxcombobox-1415-inputEl"]',
+    "estimated_hours": '//*[@id="uxnumber-1425-inputEl"]', 
+
+    # ===== 标签页 & 按钮类 =====
+    "record_view": '//*[@id="tab-1163-btnInnerEl"]',
+    "book_labor": '//*[@id="tab-1166-btnInnerEl"]',
+    "record_save": '//*[@id="button-1033-btnIconEl"]',  # 支持CTRL+S
+    "slide_bar": '//*[@id="panel-1093-splitter"]',
+    
+}
 
 
 
@@ -346,12 +444,8 @@ if __name__ == '__main__':
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
             # 找到输入框
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-07-01',tag_comment="日期输入框"),driver=driver)
-            # 浏览器切换到默认内容
-            # print("切换到默认内容")
-            # driver.switch_to.default_content()
-            # 对工单的处理  比方：打印所有工单的信息
-            # 1. 找出所有工单表格（table）
-            time.sleep(5)
+         
+            time.sleep(3)
             try:
                 print("获取工单列表：")
                 # //*[@id="tableview-1103"]/div[3]
@@ -435,47 +529,40 @@ if __name__ == '__main__':
                     # 点击当前工单（进入详情）  双击执行
                     ActionChains(driver).double_click(table).perform()
                     
-                    # 获取xpath为//*[@id="uxnumber-1425-inputEl"] input元素的文本
+                    # 1. 点击Record View Tab
+                    operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View Tab')
                     
-                    # 等待元素加载  在当前元素下面定位开头为uxnumber-的input元素    './/input[starts-with(@id, "uxnumber-")]'
+                    # 2. 获取当前tab的数据
+                    # 2.1 Sched.Start Date    !!!重点：表单项目获取文本需要使用get_attribute:value  
+                    start_date = operate_element(driver,By.XPATH, locators["start_date"],'get_attribute:value',tag_comment='Sched.Start Date')
+                    # 2.2 Sched.End Date
+                    end_date = operate_element(driver,By.XPATH, locators["end_date"],'get_attribute:value',tag_comment='Sched.End Date')
+                    # 2.3 Assigned To
+                    assigned_to = operate_element(driver,By.XPATH, locators["assigned_to"],'get_attribute:value',tag_comment='Assigned To')
+                    # 2.4 Status
+                    status = operate_element(driver,By.XPATH, locators["status"],'get_attribute:value',tag_comment='Status')
+                    # 2.5 Estimated Hours
+                    estimated_hours = operate_element(driver,By.XPATH, locators["estimated_hours"],'get_attribute:value',tag_comment='Estimated Hours')
+                    # 3. 点击Book Labor tab
+                    operate_element(driver,By.XPATH, locators["book_labor"],'click',tag_comment='Book Labor Tab')
+                    time.sleep(2)
 
-                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="uxnumber-1425-inputEl"]')))
-                    # 获取元素   '//*[matches(@id, "^uxnumber-[0-9]+-inputEl$")]'
-                    element = driver.find_element(By.XPATH, '//*[matches(@id, "^uxnumber-[0-9]+-inputEl$")]')
-                    # 获取文本
-                    text_laborHour = element.get_attribute('value')
-                    print(f"工时为: {text_laborHour}")
+                    operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View Tab')
+                    time.sleep(2)
 
-                    # 获取end date   //*[@id="uxdate-1413-inputEl"]     '//*[matches(@id, "uxdate-[0-9]+-inputEl")]'
-                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[matches(@id, "uxdate-[0-9]+-inputEl")]')))
-                    element = driver.find_element(By.XPATH, '//*[@id="uxdate-1413-inputEl"]')
-                    text_endDate = element.get_attribute('value')
-                    print(f"结束日期为: {text_endDate}")
+                    operate_chain(driver,By.XPATH, locators["slide_bar"],'double-click')
+                    time.sleep(2)
+                    # 4. 输入工单执行信息
+                    # 4.1 employee
 
-                    #点击Book labor 标签      //*[@id="tab-1166-btnInnerEl"]     '//*[matches(@id, "tab-[0-9]+-btnInnerEl")]'
-                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="tab-1166-btnInnerEl"]')))
-                    driver.find_element(By.XPATH, '//*[@id="tab-1166-btnInnerEl"]').click()
+                    # 4.2 Hours worked
 
-                    # 工单信息
-                    # 工单信息--人员  //*[@id="lovmultiselectfield-1667-inputEl"]
-                    operate_element(driver,By.XPATH, '//*[@id="lovmultiselectfield-1667-inputEl"]','send_keys','HXSH',tag_comment='工单信息--人员')
-                    # 工单信息-- 使用工时  //*[@id="uxnumber-1670-inputEl"]
-                    operate_element(driver,By.XPATH, '//*[@id="uxnumber-1670-inputEl"]','send_keys',text_laborHour,tag_comment='工单信息-- 使用工时')
-                    # 工单信息-- 执行日期 //*[@id="uxdate-1671-inputEl"]   time.strftime('%Y-%m-%d' time.localtime()),
-                    operate_element(driver,By.XPATH, '//*[@id="uxdate-1671-inputEl"]','send_keys',text_endDate,tag_comment='工单信息-- 执行日期')
+                    # 4.3 Date Worked
 
-                    # 点击保存按钮 //*[@id="button-1652-btnIconEl"]
-                    operate_element(driver,By.XPATH, '//*[@id="button-1652-btnIconEl"]','click',tag_comment='点击保存按钮')
-                   
-                    # 点击 record save 按钮  //*[@id="button-1033-btnIconEl"]
-                    operate_element(driver,By.XPATH, '//*[@id="button-1033-btnIconEl"]','click',tag_comment='点击 record save 按钮')
-                    print(f"第 {index} 个工单处理完成")
+                    # 5. 点击Submit
 
-                    #双击左侧边栏 返回列表页   //*[@id="panel-1093-splitter"]
-                    slide_bar = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="panel-1093-splitter"]')))
-                    ActionChains(driver).double_click(slide_bar).perform()
+                    # 6. 点击record save
                     
-                    time.sleep(0.5)
                
           
             except Exception as e:
