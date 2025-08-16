@@ -90,7 +90,7 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
             print(f"{datetime.now().strftime('%H:%M:%S')},等待{tag_comment}出现,{timeout}秒")
         else:
             print(f"{datetime.now().strftime('%H:%M:%S')},等待{value}出现,{timeout}秒")
-        
+        time.sleep(1.5)
         if if_scroll:
             # 元素已存在于DOM中，但可能不可见
             element = wait.until(EC.presence_of_element_located((by, value)))  
@@ -102,7 +102,7 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
             element = wait.until(EC.element_to_be_clickable((by, value)))
         if element:
             print(f"{datetime.now().strftime('%H:%M:%S')},元素出现")
-        time.sleep(0.2)
+        time.sleep(0.5)
         if action == 'click':
             element.click()
             time.sleep(0.2)
@@ -115,10 +115,18 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
             time.sleep(0.2)
             print(f"已右键单击元素{tag_comment or value}")
         elif action == 'send_keys':
-            element.click()
-            time.sleep(0.2)
-            element.clear()
+            # element.click()
+            # time.sleep(0.2)
+            # element.clear()
             
+            # element.send_keys(input_text)
+            # time.sleep(0.2)
+            element.click()
+            time.sleep(0.1)
+            element.send_keys(Keys.CONTROL, 'a')
+            time.sleep(0.1)
+            element.send_keys(Keys.DELETE)
+            time.sleep(0.1)
             element.send_keys(input_text)
             time.sleep(0.2)
             if tag_comment:
@@ -422,13 +430,18 @@ locators = {
     "book_labor": '//*[@id="tab-1166-btnInnerEl"]',
     "record_save": '//*[@id="button-1033-btnIconEl"]',  # 支持CTRL+S
     "slide_bar": '//*[@id="panel-1093-splitter"]',
-    "submit": '//*[@id="button-1652-btnIconEl"]',
+    # "submit": '//*[@id="button-1652-btnIconEl"]',
+    "submit": "(//*[starts-with(@id, 'button-') and substring(@id, string-length(@id) - string-length('-btnIconEl') +1) = '-btnIconEl'])[38]", # 索引从1开始
     
     # ===== WO 输入 =====
-    "panel": '//*[@id="panel-1664-bodyWrap"]',
+    # "panel": '//*[@id="panel-1664-bodyWrap"]',
+    # "panel": "//*[starts-with(@id, 'panel-') and substring(@id, string-length(@id) - string-length('-bodyWrap') +1) = '-bodyWrap']",
+    "panel": "(//*[starts-with(@id, 'panel-') and substring(@id, string-length(@id) - string-length('-bodyWrap') +1) = '-bodyWrap'])[19]",   # 索引从1开始
     "employee": './/input[contains(@id, "lovmultiselectfield")]',
     "hours_worked": './/input[contains(@id, "uxnumber")]',
     "date_worked": './/input[contains(@id, "uxdate")]',
+    "dropdown": "(//*[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id) - string-length('-trigger-picker') +1) = '-trigger-picker'])[5]"
+
     
     
 }
@@ -487,7 +500,7 @@ if __name__ == '__main__':
             # 找到 <= 选项并点击
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
             # 找到输入框
-            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-07-01',tag_comment="日期输入框"),driver=driver)
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-16',tag_comment="日期输入框"),driver=driver)
          
             time.sleep(3)
             try:
@@ -621,8 +634,9 @@ if __name__ == '__main__':
                     # 7. 点击slide bar
                     operate_chain(driver,By.XPATH, locators["slide_bar"],'double-click')
                     time.sleep(2)
+                    
                
-          
+                print(f"🟢 总计处理成功{len(tables)}个工单")
             except Exception as e:
                 print(f"🚫 第 {index} 个工单输入失败: {e}")
                 raise e
