@@ -28,6 +28,10 @@ def random_weekday(start_date: str, end_date: str) -> str:
     if start > end:
         raise ValueError("start_date must be earlier than or equal to end_date")
     
+    # 如果区间小于 7 天，直接返回 start_date
+    if (end - start).days < 7:
+        return start_date
+
     # 生成所有非周六/周日的日期
     weekdays = []
     current = start
