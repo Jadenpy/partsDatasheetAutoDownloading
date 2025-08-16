@@ -13,6 +13,35 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.alert import Alert
 from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException,TimeoutException
 
+import random
+from datetime import datetime, timedelta
+
+def random_weekday(start_date: str, end_date: str) -> str:
+    """
+    返回 start_date 和 end_date 之间的一个非周六、周日的随机日期（格式 YYYY-MM-DD）
+    """
+    # 转换为 datetime 对象
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    
+    if start > end:
+        raise ValueError("start_date must be earlier than or equal to end_date")
+    
+    # 生成所有非周六/周日的日期
+    weekdays = []
+    current = start
+    while current <= end:
+        if current.weekday() < 5:  # 0-4 表示周一到周五
+            weekdays.append(current)
+        current += timedelta(days=1)
+    
+    if not weekdays:
+        raise ValueError("No weekdays available in the given range.")
+    
+    # 随机选择一个日期
+    chosen_date = random.choice(weekdays)
+    return chosen_date.strftime("%Y-%m-%d")
+
 def create_driver():
     """创建并返回一个 Edge 浏览器实例"""
     options = Options()
@@ -35,7 +64,7 @@ def open_url(driver, url):
 #     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
 #     elem.click()
 
-def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_comment=None, if_scroll= False):
+def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_comment=None, if_scroll= True):
     """
     通用元素操作函数
 
@@ -43,15 +72,16 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
     - driver: selenium webdriver 实例
     - by: 定位方式（例如 By.ID, By.XPATH, By.NAME, By.CSS_SELECTOR 等）
     - value: 元素定位值
-    - action: 要执行的操作，如 'click', 'send_keys', 'clear', 'get_text','send_keys_and_enter'
+    - action: 要执行的操作，如 'click', 'send_keys', 'clear', 'get_text','send_keys_and_enter','get_element','get_attribute','right_click' 等
     - input_text: 输入框中要输入的内容（仅在 send_keys 操作中使用）
-    - timeout: 等待时间（默认 70 秒）
+    - timeout: 等待时间（默认 80 秒）
     - tag_comment: 操作注释（可选）
     - if_scroll: 是否滚动到元素位置（可选）
 
     返回：
     - 如果是 get_text 或 get_attribute，则返回对应值
     - 其他操作无返回值
+    - 元素
     """
     try:
         wait = WebDriverWait(driver, timeout)
@@ -80,6 +110,10 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
                 print(f"已经点击元素{tag_comment}")
             else:
                 print(f"已经点击元素{value}")
+        elif action == 'right_click':
+            ActionChains(driver).context_click(element).perform()
+            time.sleep(0.2)
+            print(f"已右键单击元素{tag_comment or value}")
         elif action == 'send_keys':
             element.click()
             time.sleep(0.2)
@@ -125,6 +159,8 @@ def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_
                 print(f"已返回元素{value} 的内容")
                 print(f"元素{value} 的属性{attr}的值为: {attr_value}")
             return attr_value
+        elif action == 'get_element':
+            return element
         else:
             print(f"❌ 未知的操作: {action}")
     except Exception as e:
@@ -374,7 +410,7 @@ def operate_chain(driver, target_by, target_value, action,
 
 # Selenium 4.3 模糊匹配 XPath 映射
 locators = {
-    # ===== 工单字段输入类 =====
+    # ===== WO 读取 =====
     "start_date": '//*[@id="uxdate-1412-inputEl"]',
     "end_date": '//*[@id="uxdate-1413-inputEl"]',
     "assigned_to": '//*[@id="lovfield-1414-inputEl"]',
@@ -386,6 +422,14 @@ locators = {
     "book_labor": '//*[@id="tab-1166-btnInnerEl"]',
     "record_save": '//*[@id="button-1033-btnIconEl"]',  # 支持CTRL+S
     "slide_bar": '//*[@id="panel-1093-splitter"]',
+    "submit": '//*[@id="button-1652-btnIconEl"]',
+    
+    # ===== WO 输入 =====
+    "panel": '//*[@id="panel-1664-bodyWrap"]',
+    "employee": './/input[contains(@id, "lovmultiselectfield")]',
+    "hours_worked": './/input[contains(@id, "uxnumber")]',
+    "date_worked": './/input[contains(@id, "uxdate")]',
+    
     
 }
 
@@ -525,7 +569,6 @@ if __name__ == '__main__':
                 for index, table in enumerate(tables, start=1):
              
                     print(f"正在处理第 {index} 个工单...")
-
                     # 点击当前工单（进入详情）  双击执行
                     ActionChains(driver).double_click(table).perform()
                     
@@ -547,22 +590,37 @@ if __name__ == '__main__':
                     operate_element(driver,By.XPATH, locators["book_labor"],'click',tag_comment='Book Labor Tab')
                     time.sleep(2)
 
-                    operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View Tab')
-                    time.sleep(2)
+                    # operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View Tab')
+                    # time.sleep(2)
 
+                    
+                    # 4. 输入工单执行信息
+                    # parent element
+                    parent_element = driver.find_element(By.XPATH, locators["panel"])
+                    # 4.1 employee
+                    parent_element.find_element(By.XPATH, locators["employee"]).send_keys(assigned_to)
+                    # 4.2 Hours worked
+                    parent_element.find_element(By.XPATH, locators["hours_worked"]).send_keys(estimated_hours)
+                    # 4.3 Date Worked
+                    worked_date = random_weekday(start_date, end_date)
+                    parent_element.find_element(By.XPATH, locators["date_worked"]).send_keys(worked_date)   
+                    # 5. 点击Submit
+                    operate_element(driver,By.XPATH, locators["submit"],'click',tag_comment='Submit')
+                    time.sleep(1)
+                    # 6. 点击record save
+                    operate_element(driver,By.XPATH, locators["record_save"],'click',tag_comment='Record Save')
+                    # 右键点击record save ,消除弹窗
+                    operate_element(driver,By.XPATH, locators["record_save"],'right_click',tag_comment='Record Save')
+                    # 6-1. 点击record view
+                    operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View')
+                    # 6-2. 修改工单状态 open-->completed
+                    operate_element(driver,By.XPATH, locators["status"],'send_keys','Completed',tag_comment='Status')
+                    # 6-3. 点击save record
+                    operate_element(driver,By.XPATH, locators["record_save"],'click',tag_comment='Save Record')
+                    time.sleep(8)
+                    # 7. 点击slide bar
                     operate_chain(driver,By.XPATH, locators["slide_bar"],'double-click')
                     time.sleep(2)
-                    # 4. 输入工单执行信息
-                    # 4.1 employee
-
-                    # 4.2 Hours worked
-
-                    # 4.3 Date Worked
-
-                    # 5. 点击Submit
-
-                    # 6. 点击record save
-                    
                
           
             except Exception as e:
