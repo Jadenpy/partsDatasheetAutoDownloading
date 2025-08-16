@@ -15,6 +15,7 @@ from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertP
 
 import random
 from datetime import datetime, timedelta
+import traceback
 
 def random_weekday(start_date: str, end_date: str) -> str:
     """
@@ -415,6 +416,12 @@ def operate_chain(driver, target_by, target_value, action,
     except Exception as e:
         print(f"❌ 执行动作链出错: {e}")
 
+# 封装一个小函数，保证输入前清空
+def clear_and_send_keys(element, text):
+    element.click()
+    element.send_keys(Keys.CONTROL, "a")
+    element.send_keys(Keys.DELETE)
+    element.send_keys(text)
 
 # Selenium 4.3 模糊匹配 XPath 映射
 locators = {
@@ -494,7 +501,7 @@ if __name__ == '__main__':
             
             driver = get_iframe_and_return(driver,By.ID,"uxtabiframe-1040-iframeEl")
             #       !!!重点： CSS_SELECTOR 可以找到元素，且可以点击，但是XPATH不行，报警不可点击
-            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#textfield-1333-inputEl','send_keys_and_enter','HXSH',tag_comment="人员姓名输入框",if_scroll=True),driver=driver)
+            # auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#textfield-1333-inputEl','send_keys_and_enter','HXSH',tag_comment="人员姓名输入框",if_scroll=True),driver=driver)
             # 找到下拉按钮并点击
             auto_retry(lambda: operate_element(driver,By.XPATH,'//*[@id="uxfilteroperator-1251"]','click',tag_comment="日期筛选条件下拉按钮"),driver=driver)
             # 找到 <= 选项并点击
@@ -611,12 +618,15 @@ if __name__ == '__main__':
                     # parent element
                     parent_element = driver.find_element(By.XPATH, locators["panel"])
                     # 4.1 employee
-                    parent_element.find_element(By.XPATH, locators["employee"]).send_keys(assigned_to)
+                    elem = parent_element.find_element(By.XPATH, locators["employee"])
+                    clear_and_send_keys(elem, assigned_to)
                     # 4.2 Hours worked
-                    parent_element.find_element(By.XPATH, locators["hours_worked"]).send_keys(estimated_hours)
+                    elem = parent_element.find_element(By.XPATH, locators["hours_worked"])
+                    clear_and_send_keys(elem, estimated_hours)
                     # 4.3 Date Worked
                     worked_date = random_weekday(start_date, end_date)
-                    parent_element.find_element(By.XPATH, locators["date_worked"]).send_keys(worked_date)   
+                    elem = parent_element.find_element(By.XPATH, locators["date_worked"])
+                    clear_and_send_keys(elem, worked_date)
                     # 5. 点击Submit
                     operate_element(driver,By.XPATH, locators["submit"],'click',tag_comment='Submit')
                     time.sleep(1)
@@ -645,7 +655,8 @@ if __name__ == '__main__':
             # driver.switch_to.default_content()
         except Exception as e:
             print(f"🚫 EAM函数捕获异常：{e}，已终止")
-            return  # ← 退出主函数（也可以改成 raise 继续向上传递）
+            traceback.print_exc()  # 打印完整堆栈（包含文件、行号）
+            # return  # ← 退出主函数（也可以改成 raise 继续向上传递）
         
     print(f'测试已经于 {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} 开始')
     EAM()
