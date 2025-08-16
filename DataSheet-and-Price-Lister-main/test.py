@@ -451,7 +451,9 @@ locators = {
     "employee": './/input[contains(@id, "lovmultiselectfield")]',
     "hours_worked": './/input[contains(@id, "uxnumber")]',
     "date_worked": './/input[contains(@id, "uxdate")]',
-    "dropdown": "(//*[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id) - string-length('-trigger-picker') +1) = '-trigger-picker'])[5]"
+    "dropdown": "(//*[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id) - string-length('-trigger-picker') +1) = '-trigger-picker'])[5]",
+    "activity": "(//input[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id)-6)='inputEl'])[9]",
+    
 
     
     
@@ -617,10 +619,20 @@ if __name__ == '__main__':
                     # operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View Tab')
                     # time.sleep(2)
 
+                        
                     
                     # 4. 输入工单执行信息
                     # parent element
+                    
                     parent_element = driver.find_element(By.XPATH, locators["panel"])
+
+                    # 这里需要增加判断Activity是否有值，如果有 10 - DEFAULT / ALL TRADES     |    20 - DEFAULT / ALL TRADES
+                    elem = parent_element.find_element(By.XPATH, locators["activity"])
+                    elem_value = elem.get_attribute('value')
+                    if not elem_value.strip():
+                        elem.clear()
+                        elem.send_keys('10 - DEFAULT / ALL TRADES')
+                       
                     # 4.1 employee
                     elem = parent_element.find_element(By.XPATH, locators["employee"])
                     clear_and_send_keys(elem, assigned_to)
