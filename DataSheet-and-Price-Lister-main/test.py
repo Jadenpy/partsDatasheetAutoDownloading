@@ -11,54 +11,106 @@ import time
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.alert import Alert
-from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException,TimeoutException
+from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException,TimeoutException,ElementClickInterceptedException
 
 import random
 from datetime import datetime, timedelta
 import traceback
+from selenium.webdriver.remote.remote_connection import RemoteConnection
+import urllib3
 
-def random_weekday(start_date: str, end_date: str) -> str:
+# def random_weekday(start_date: str, end_date: str) -> str:
+#     """
+#     返回 start_date 和 end_date 之间的一个非周六、周日的随机日期（格式 YYYY-MM-DD）
+#     """
+#     # 转换为 datetime 对象
+#     start = datetime.strptime(start_date, "%Y-%m-%d")
+#     end = datetime.strptime(end_date, "%Y-%m-%d")
+    
+#     if start > end:
+#         raise ValueError("start_date must be earlier than or equal to end_date")
+    
+#     # 如果区间小于 7 天，直接返回 start_date
+#     if (end - start).days < 7:
+#         return start_date
+
+#     # 生成所有非周六/周日的日期
+#     weekdays = []
+#     current = start
+#     while current <= end:
+#         if current.weekday() < 5:  # 0-4 表示周一到周五
+#             weekdays.append(current)
+#         current += timedelta(days=1)
+    
+#     if not weekdays:
+#         raise ValueError("No weekdays available in the given range.")
+    
+#     # 随机选择一个日期
+#     chosen_date = random.choice(weekdays)
+#     return chosen_date.strftime("%Y-%m-%d")
+
+def random_weekday(start_date: str, end_date: str, exclude: list[str] = None) -> str:
     """
-    返回 start_date 和 end_date 之间的一个非周六、周日的随机日期（格式 YYYY-MM-DD）
+    返回 start_date 和 end_date 之间的一个随机日期。
+    - 如果范围大于3天：只返回工作日（周一到周五）
+    - 如果范围小于等于3天：不做周末判断（周六周日也可能选中）
+    - 可以排除 exclude 列表中的日期
     """
-    # 转换为 datetime 对象
+    from datetime import datetime, timedelta
+    import random
+
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
-    
-    if start > end:
-        raise ValueError("start_date must be earlier than or equal to end_date")
-    
-    # 如果区间小于 7 天，直接返回 start_date
-    if (end - start).days < 7:
-        return start_date
+    exclude = set(exclude or [])
 
-    # 生成所有非周六/周日的日期
-    weekdays = []
-    current = start
-    while current <= end:
-        if current.weekday() < 5:  # 0-4 表示周一到周五
-            weekdays.append(current)
-        current += timedelta(days=1)
-    
-    if not weekdays:
-        raise ValueError("No weekdays available in the given range.")
-    
-    # 随机选择一个日期
-    chosen_date = random.choice(weekdays)
-    return chosen_date.strftime("%Y-%m-%d")
+    total_days = (end - start).days + 1
+    candidates = []
+
+    curr = start
+    while curr <= end:
+        date_str = curr.strftime("%Y-%m-%d")
+        if date_str not in exclude:
+            if total_days > 3:
+                # 范围大于3天 → 只要工作日
+                if curr.weekday() < 5:  # 周一~周五 (0-4)
+                    candidates.append(date_str)
+            else:
+                # 范围小于等于3天 → 周末也可以
+                candidates.append(date_str)
+        curr += timedelta(days=1)
+
+    if not candidates:
+        raise ValueError("没有可用的日期，请检查范围或排除条件")
+
+    return random.choice(candidates)
 
 def create_driver():
+    # 全局设置 urllib3 的连接和读取超时为 300 秒
+    urllib3.util.timeout.Timeout._DEFAULT_TIMEOUT = 300
     """创建并返回一个 Edge 浏览器实例"""
     options = Options()
     options.add_argument("--start-maximized")
     options.add_argument("--log-level=3")  # 设置日志级别
     options.add_experimental_option("detach", True)  # 关键，设置浏览器关闭时不退出
+    # options.add_argument("--headless=new")
+    # options.add_argument("--disable-gpu")
+    # options.add_argument("--disable-extensions")
+    # options.add_argument("--blink-settings=imagesEnabled=false")  # 不加载图片
     service = Service(executable_path="DataSheet-and-Price-Lister-main\drives\msedgedriver.exe")  # 如果 msedgedriver 在 PATH 中，无需指定路径
     driver = webdriver.Edge(service=service, options=options)
+    driver.set_page_load_timeout(300)  # 页面最长等待 300 秒
+    driver.set_script_timeout(300)     # JS 脚本最长等待 300 秒
+    # Selenium 4.3 增加底层 HTTP timeout
+    # if driver.command_executor and hasattr(driver.command_executor, '_conn'):
+    #     driver.command_executor._conn._timeout = 300  # 300秒
+
+    # if hasattr(driver, "command_executor") and hasattr(driver.command_executor, "_conn"):
+    # driver.command_executor._conn._timeout = 300  # 300秒
     return driver
 
 def open_url(driver, url):
     """打开指定的网页 URL"""
+    time.sleep(1)
     driver.get(url)
 
 # def scroll_and_click(driver, selector):
@@ -69,116 +121,109 @@ def open_url(driver, url):
 #     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
 #     elem.click()
 
-def operate_element(driver, by, value, action, input_text=None, timeout=80, tag_comment=None, if_scroll= True):
+def operate_element(driver, by, value, action, input_text=None, timeout=120, tag_comment=None, if_scroll=True, retries=3, wait_float=3):
     """
-    通用元素操作函数
+    通用元素操作函数，增强安全点击，支持重试和浮层等待
 
-    参数：
-    - driver: selenium webdriver 实例
-    - by: 定位方式（例如 By.ID, By.XPATH, By.NAME, By.CSS_SELECTOR 等）
-    - value: 元素定位值
-    - action: 要执行的操作，如 'click', 'send_keys', 'clear', 'get_text','send_keys_and_enter','get_element','get_attribute','right_click' 等
-    - input_text: 输入框中要输入的内容（仅在 send_keys 操作中使用）
-    - timeout: 等待时间（默认 80 秒）
-    - tag_comment: 操作注释（可选）
-    - if_scroll: 是否滚动到元素位置（可选）
-
-    返回：
-    - 如果是 get_text 或 get_attribute，则返回对应值
-    - 其他操作无返回值
-    - 元素
+    新增参数：
+    - retries: 点击失败时的重试次数（仅对 click 和 right_click 生效）
+    - wait_float: 每次点击前等待浮层消失的秒数
     """
+    # from selenium.webdriver.common.by import By
+    # from selenium.webdriver.support.ui import WebDriverWait
+    # from selenium.webdriver.support import expected_conditions as EC
+    # from selenium.webdriver.common.action_chains import ActionChains
+    # from selenium.webdriver.common.keys import Keys
+    # import time
+    # from datetime import datetime
+    # from selenium.common.exceptions import ElementClickInterceptedException, TimeoutException
+
+    def wait_for_floats():
+        """等待页面浮层/遮罩消失"""
+        try:
+            WebDriverWait(driver, wait_float).until(
+                EC.invisibility_of_element_located((By.CLASS_NAME, "x-autocontainer-innerCt"))
+            )
+        except TimeoutException:
+            pass  # 浮层可能没消失，但继续尝试
+
     try:
         wait = WebDriverWait(driver, timeout)
-        
-        if tag_comment:
-            print(f"{datetime.now().strftime('%H:%M:%S')},等待{tag_comment}出现,{timeout}秒")
-        else:
-            print(f"{datetime.now().strftime('%H:%M:%S')},等待{value}出现,{timeout}秒")
-        time.sleep(1.5)
+        print(f"{datetime.now().strftime('%H:%M:%S')},等待元素 {tag_comment or value} 出现, timeout={timeout}s")
+        time.sleep(1)
+
         if if_scroll:
-            # 元素已存在于DOM中，但可能不可见
-            element = wait.until(EC.presence_of_element_located((by, value)))  
-            # 滚动到元素位置
-            driver.execute_script("arguments[0].scrollIntoView();", element)
-            # 等待元素可见，且可交互
+            element = wait.until(EC.presence_of_element_located((by, value)))
+            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", element)
             element = wait.until(EC.element_to_be_clickable((by, value)))
         else:
             element = wait.until(EC.element_to_be_clickable((by, value)))
+
         if element:
             print(f"{datetime.now().strftime('%H:%M:%S')},元素出现")
+
         time.sleep(0.5)
-        if action == 'click':
-            element.click()
-            time.sleep(0.2)
-            if tag_comment:
-                print(f"已经点击元素{tag_comment}")
+
+        # ----------------- 安全点击逻辑 -----------------
+        if action in ['click', 'right_click']:
+            for attempt in range(retries):
+                try:
+                    wait_for_floats()
+                    if action == 'click':
+                        element.click()
+                        print(f"{datetime.now().strftime('%H:%M:%S')},已点击元素 {tag_comment or value}")
+                    else:
+                        ActionChains(driver).context_click(element).perform()
+                        print(f"{datetime.now().strftime('%H:%M:%S')},已右键点击元素 {tag_comment or value}")
+                    time.sleep(0.2)
+                    break  # 点击成功，退出循环
+                except ElementClickInterceptedException:
+                    print(f"⚠️ 第 {attempt+1} 次点击被挡住，重试...")
+                    time.sleep(1)
+                    element = driver.find_element(by, value)
+                    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", element)
             else:
-                print(f"已经点击元素{value}")
-        elif action == 'right_click':
-            ActionChains(driver).context_click(element).perform()
-            time.sleep(0.2)
-            print(f"已右键单击元素{tag_comment or value}")
+                raise ElementClickInterceptedException(f"多次点击 {value} 被挡住失败")
+        # ----------------- 原有 send_keys / clear / get_text 等操作 -----------------
         elif action == 'send_keys':
-            # element.click()
-            # time.sleep(0.2)
-            # element.clear()
-            
-            # element.send_keys(input_text)
-            # time.sleep(0.2)
             element.click()
-            time.sleep(0.1)
+            # time.sleep(0.1)
             element.send_keys(Keys.CONTROL, 'a')
-            time.sleep(0.1)
+            # time.sleep(0.1)
             element.send_keys(Keys.DELETE)
-            time.sleep(0.1)
+            # time.sleep(0.1)
             element.send_keys(input_text)
-            time.sleep(0.2)
-            if tag_comment:
-                print(f"在元素{tag_comment}已输入{input_text}")
-            else:
-                print(f"在元素{value}已输入{input_text}")           
+            time.sleep(0.1)
+            print(f"{datetime.now().strftime('%H:%M:%S')},在元素 {tag_comment or value} 已输入 {input_text}")
         elif action == 'send_keys_and_enter':
             element.clear()
-            time.sleep(0.2)
+            # time.sleep(0.2)
             element.send_keys(input_text)
-            time.sleep(0.2)
+            # time.sleep(0.2)
             element.send_keys(Keys.ENTER)
-            time.sleep(0.2)
-            if tag_comment:
-                print(f"在元素{tag_comment}已输入{input_text}并回车")
-            else:
-                print(f"在元素{value}已输入{input_text}并回车")
+            time.sleep(0.1)
+            print(f"{datetime.now().strftime('%H:%M:%S')},在元素 {tag_comment or value} 已输入 {input_text} 并回车")
         elif action == 'clear':
             element.clear()
-            time.sleep(0.2)
-            if tag_comment:
-                print(f"已清空元素{tag_comment} 的内容")
-            else:
-                print(f"已清空元素{value} 的内容")
+            # time.sleep(0.2)
+            print(f"{datetime.now().strftime('%H:%M:%S')},已清空元素 {tag_comment or value}")
         elif action == 'get_text':
-            if tag_comment:
-                print(f"已返回元素{tag_comment} 的内容")
-            else:
-                print(f"已返回元素{value} 的内容")
+            print(f"{datetime.now().strftime('%H:%M:%S')},已返回元素 {tag_comment or value} 的文本")
             return element.text
         elif action.startswith("get_attribute:"):
             attr = action.split(":", 1)[1]
             attr_value = element.get_attribute(attr)
-            if tag_comment:
-                print(f"已返回元素{tag_comment} 的内容")
-                print(f"元素{tag_comment} 的属性{attr}的值为: {attr_value}")
-            else:
-                print(f"已返回元素{value} 的内容")
-                print(f"元素{value} 的属性{attr}的值为: {attr_value}")
+            print(f"{datetime.now().strftime('%H:%M:%S')},元素 {tag_comment or value} 的属性 {attr} 值为: {attr_value}")
             return attr_value
         elif action == 'get_element':
             return element
         else:
             print(f"❌ 未知的操作: {action}")
+
     except Exception as e:
-        # print(f"❌ 执行操作时出错: {e}")
+        print(f"🚫 执行操作时出错: {e}")
         raise
+
 
 def auto_retry(func, retries=3, wait=2,driver=None):
 
@@ -513,7 +558,9 @@ if __name__ == '__main__':
             # 找到 <= 选项并点击
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
             # 找到输入框
-            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter','2025-08-16',tag_comment="日期输入框"),driver=driver)
+            # 将今天的日期输入到输入框中
+            today = datetime.datetime.now().strftime("%Y-%m-%d")
+            auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter',today,tag_comment="日期输入框"),driver=driver)
          
             time.sleep(3)
             try:
@@ -614,7 +661,7 @@ if __name__ == '__main__':
                     estimated_hours = operate_element(driver,By.XPATH, locators["estimated_hours"],'get_attribute:value',tag_comment='Estimated Hours')
                     # 3. 点击Book Labor tab
                     operate_element(driver,By.XPATH, locators["book_labor"],'click',tag_comment='Book Labor Tab')
-                    time.sleep(2)
+                    time.sleep(0.5)
 
                     # operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View Tab')
                     # time.sleep(2)
@@ -645,7 +692,23 @@ if __name__ == '__main__':
                     clear_and_send_keys(elem, worked_date)
                     # 5. 点击Submit
                     operate_element(driver,By.XPATH, locators["submit"],'click',tag_comment='Submit')
-                    time.sleep(1)
+                    time.sleep(0.5)
+                    # too many time
+                    # elem = driver.find_element(By.XPATH,"//div[starts-with(@id, 'eammsgbox-')][0]")
+                    # if elem:
+                    #     # too many time warnning, click the ok button
+                    #     ok_btn = elem.find_element(By.XPATH, ".//*[starts-with(@id, 'button-') and contains(@id, '-btnInnerEl')]")
+                    #     ok_btn.click()
+                    #     # change the worked date   这个要把之前的日期排除掉，重新生成一个日期？
+                    #     worked_date = random_weekday(start_date, end_date,[worked_date])
+                    #     # modify the worked date
+                    #     elem = parent_element.find_element(By.XPATH, locators["date_worked"])
+                    #     clear_and_send_keys(elem, worked_date)
+                    #     # 5. 点击Submit
+                    #     operate_element(driver,By.XPATH, locators["submit"],'click',tag_comment='Submit')
+                    #     time.sleep(2)
+                    #     # 再次判断是否弹出too many time 弹窗，可以跳转到标签吗？
+
                     # 6. 点击record save
                     operate_element(driver,By.XPATH, locators["record_save"],'click',tag_comment='Record Save')
                     # 右键点击record save ,消除弹窗
@@ -656,10 +719,10 @@ if __name__ == '__main__':
                     operate_element(driver,By.XPATH, locators["status"],'send_keys','Completed',tag_comment='Status')
                     # 6-3. 点击save record
                     operate_element(driver,By.XPATH, locators["record_save"],'click',tag_comment='Save Record')
-                    time.sleep(8)
+                    time.sleep(3)
                     # 7. 点击slide bar
                     operate_chain(driver,By.XPATH, locators["slide_bar"],'double-click')
-                    time.sleep(2)
+                    time.sleep(0.5)
                     
                
                 print(f"🟢 总计处理成功{len(tables)}个工单")
@@ -671,6 +734,7 @@ if __name__ == '__main__':
             # driver.switch_to.default_content()
         except Exception as e:
             print(f"🚫 EAM函数捕获异常：{e}，已终止")
+
             traceback.print_exc()  # 打印完整堆栈（包含文件、行号）
             # return  # ← 退出主函数（也可以改成 raise 继续向上传递）
         
