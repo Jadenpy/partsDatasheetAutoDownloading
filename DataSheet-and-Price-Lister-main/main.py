@@ -5,49 +5,15 @@ from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-# import keys
 from selenium.webdriver.common.keys import Keys
 import time
 from datetime import datetime
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.alert import Alert
-from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException,TimeoutException,ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException,ElementClickInterceptedException
 
 import random
 from datetime import datetime, timedelta
 import traceback
-from selenium.webdriver.remote.remote_connection import RemoteConnection
-import urllib3
-
-# def random_weekday(start_date: str, end_date: str) -> str:
-#     """
-#     返回 start_date 和 end_date 之间的一个非周六、周日的随机日期（格式 YYYY-MM-DD）
-#     """
-#     # 转换为 datetime 对象
-#     start = datetime.strptime(start_date, "%Y-%m-%d")
-#     end = datetime.strptime(end_date, "%Y-%m-%d")
-    
-#     if start > end:
-#         raise ValueError("start_date must be earlier than or equal to end_date")
-    
-#     # 如果区间小于 7 天，直接返回 start_date
-#     if (end - start).days < 7:
-#         return start_date
-
-#     # 生成所有非周六/周日的日期
-#     weekdays = []
-#     current = start
-#     while current <= end:
-#         if current.weekday() < 5:  # 0-4 表示周一到周五
-#             weekdays.append(current)
-#         current += timedelta(days=1)
-    
-#     if not weekdays:
-#         raise ValueError("No weekdays available in the given range.")
-    
-#     # 随机选择一个日期
-#     chosen_date = random.choice(weekdays)
-#     return chosen_date.strftime("%Y-%m-%d")
 
 def random_weekday(start_date: str, end_date: str, exclude: list[str] = None) -> str:
     """
@@ -56,9 +22,6 @@ def random_weekday(start_date: str, end_date: str, exclude: list[str] = None) ->
     - 如果范围小于等于3天：不做周末判断（周六周日也可能选中）
     - 可以排除 exclude 列表中的日期
     """
-    from datetime import datetime, timedelta
-    import random
-
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
     exclude = set(exclude or [])
@@ -85,41 +48,28 @@ def random_weekday(start_date: str, end_date: str, exclude: list[str] = None) ->
     return random.choice(candidates)
 
 def create_driver():
-    # 全局设置 urllib3 的连接和读取超时为 300 秒
-    urllib3.util.timeout.Timeout._DEFAULT_TIMEOUT = 300
+    
     """创建并返回一个 Edge 浏览器实例"""
     options = Options()
     options.add_argument("--start-maximized")
     options.add_argument("--log-level=3")  # 设置日志级别
     options.add_experimental_option("detach", True)  # 关键，设置浏览器关闭时不退出
-    # options.add_argument("--headless=new")
-    # options.add_argument("--disable-gpu")
-    # options.add_argument("--disable-extensions")
-    # options.add_argument("--blink-settings=imagesEnabled=false")  # 不加载图片
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--blink-settings=imagesEnabled=false")  # 不加载图片
     service = Service(executable_path="DataSheet-and-Price-Lister-main\drives\msedgedriver.exe")  # 如果 msedgedriver 在 PATH 中，无需指定路径
-    driver = webdriver.Edge(service=service, options=options)
-    driver.set_page_load_timeout(300)  # 页面最长等待 300 秒
-    driver.set_script_timeout(300)     # JS 脚本最长等待 300 秒
-    # Selenium 4.3 增加底层 HTTP timeout
-    # if driver.command_executor and hasattr(driver.command_executor, '_conn'):
-    #     driver.command_executor._conn._timeout = 300  # 300秒
-
-    # if hasattr(driver, "command_executor") and hasattr(driver.command_executor, "_conn"):
-    # driver.command_executor._conn._timeout = 300  # 300秒
+    driver = webdriver.Edge(
+        service=service, 
+        options=options,
+        )
+   
     return driver
 
 def open_url(driver, url):
     """打开指定的网页 URL"""
     time.sleep(1)
     driver.get(url)
-
-# def scroll_and_click(driver, selector):
-#     elem = WebDriverWait(driver, 10).until(
-#         EC.presence_of_element_located((By.CSS_SELECTOR, selector))
-#     )
-#     driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'center'});", elem)
-#     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
-#     elem.click()
 
 def operate_element(driver, by, value, action, input_text=None, timeout=120, tag_comment=None, if_scroll=True, retries=3, wait_float=3):
     """
@@ -129,15 +79,6 @@ def operate_element(driver, by, value, action, input_text=None, timeout=120, tag
     - retries: 点击失败时的重试次数（仅对 click 和 right_click 生效）
     - wait_float: 每次点击前等待浮层消失的秒数
     """
-    # from selenium.webdriver.common.by import By
-    # from selenium.webdriver.support.ui import WebDriverWait
-    # from selenium.webdriver.support import expected_conditions as EC
-    # from selenium.webdriver.common.action_chains import ActionChains
-    # from selenium.webdriver.common.keys import Keys
-    # import time
-    # from datetime import datetime
-    # from selenium.common.exceptions import ElementClickInterceptedException, TimeoutException
-
     def wait_for_floats():
         """等待页面浮层/遮罩消失"""
         try:
@@ -187,25 +128,20 @@ def operate_element(driver, by, value, action, input_text=None, timeout=120, tag
         # ----------------- 原有 send_keys / clear / get_text 等操作 -----------------
         elif action == 'send_keys':
             element.click()
-            # time.sleep(0.1)
             element.send_keys(Keys.CONTROL, 'a')
-            # time.sleep(0.1)
             element.send_keys(Keys.DELETE)
-            # time.sleep(0.1)
             element.send_keys(input_text)
             time.sleep(0.1)
             print(f"{datetime.now().strftime('%H:%M:%S')},在元素 {tag_comment or value} 已输入 {input_text}")
         elif action == 'send_keys_and_enter':
             element.clear()
-            # time.sleep(0.2)
+           
             element.send_keys(input_text)
-            # time.sleep(0.2)
             element.send_keys(Keys.ENTER)
             time.sleep(0.1)
             print(f"{datetime.now().strftime('%H:%M:%S')},在元素 {tag_comment or value} 已输入 {input_text} 并回车")
         elif action == 'clear':
             element.clear()
-            # time.sleep(0.2)
             print(f"{datetime.now().strftime('%H:%M:%S')},已清空元素 {tag_comment or value}")
         elif action == 'get_text':
             print(f"{datetime.now().strftime('%H:%M:%S')},已返回元素 {tag_comment or value} 的文本")
@@ -474,7 +410,7 @@ def clear_and_send_keys(element, text):
 
 # Selenium 4.3 模糊匹配 XPath 映射
 locators = {
-    # ===== WO 读取 =====
+    # ===== WO 信息读取 =====
     "start_date": '//*[@id="uxdate-1412-inputEl"]',
     "end_date": '//*[@id="uxdate-1413-inputEl"]',
     "assigned_to": '//*[@id="lovfield-1414-inputEl"]',
@@ -484,24 +420,17 @@ locators = {
     # ===== 标签页 & 按钮类 =====
     "record_view": '//*[@id="tab-1163-btnInnerEl"]',
     "book_labor": '//*[@id="tab-1166-btnInnerEl"]',
-    "record_save": '//*[@id="button-1033-btnIconEl"]',  # 支持CTRL+S
+    "record_save": '//*[@id="button-1033-btnIconEl"]', 
     "slide_bar": '//*[@id="panel-1093-splitter"]',
-    # "submit": '//*[@id="button-1652-btnIconEl"]',
     "submit": "(//*[starts-with(@id, 'button-') and substring(@id, string-length(@id) - string-length('-btnIconEl') +1) = '-btnIconEl'])[38]", # 索引从1开始
     
     # ===== WO 输入 =====
-    # "panel": '//*[@id="panel-1664-bodyWrap"]',
-    # "panel": "//*[starts-with(@id, 'panel-') and substring(@id, string-length(@id) - string-length('-bodyWrap') +1) = '-bodyWrap']",
     "panel": "(//*[starts-with(@id, 'panel-') and substring(@id, string-length(@id) - string-length('-bodyWrap') +1) = '-bodyWrap'])[19]",   # 索引从1开始
     "employee": './/input[contains(@id, "lovmultiselectfield")]',
     "hours_worked": './/input[contains(@id, "uxnumber")]',
     "date_worked": './/input[contains(@id, "uxdate")]',
     "dropdown": "(//*[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id) - string-length('-trigger-picker') +1) = '-trigger-picker'])[5]",
-    "activity": "(//input[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id)-6)='inputEl'])[9]",
-    
-
-    
-    
+    "activity": "(//input[starts-with(@id, 'uxcombobox-') and substring(@id, string-length(@id)-6)='inputEl'])[9]",    
 }
 
 
@@ -559,7 +488,7 @@ if __name__ == '__main__':
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#menuitem-1256','click',tag_comment="日期筛选条件 <= 选项"),driver=driver)
             # 找到输入框
             # 将今天的日期输入到输入框中
-            today = datetime.datetime.now().strftime("%Y-%m-%d")
+            today = datetime.now().strftime("%Y-%m-%d")
             auto_retry(lambda: operate_element(driver,By.CSS_SELECTOR,'#uxdate-1261-inputEl','send_keys_and_enter',today,tag_comment="日期输入框"),driver=driver)
          
             time.sleep(3)
@@ -573,64 +502,64 @@ if __name__ == '__main__':
                 
                  # all_orders = []  # 用于存放所有工单的内容     
                 if tables:
-                    
-                    print(f"可见表格数量: {len(tables)}")
-                    # 文件名   '工单'+time.strftime('%m%d', time.localtime())+'.html'
-                    with open('工单'+time.strftime('%m%d')+'.html', 'w', encoding='utf-8') as f:
-                        # 遍历列表并将每个表格的HTML写入文件
-                        for index, table in enumerate(tables, start=1):
-                            try:
-                                # 获取表格完整HTML
-                                table_html = table.get_attribute('outerHTML')
+                    pass
+                    # print(f"可见表格数量: {len(tables)}")
+                    # # 文件名   '工单'+time.strftime('%m%d', time.localtime())+'.html'
+                    # with open('工单'+time.strftime('%m%d')+'.html', 'w', encoding='utf-8') as f:
+                    #     # 遍历列表并将每个表格的HTML写入文件
+                    #     for index, table in enumerate(tables, start=1):
+                    #         try:
+                    #             # 获取表格完整HTML
+                    #             table_html = table.get_attribute('outerHTML')
                                 
-                                # 写入标识和表格HTML（格式与打印时一致，便于阅读）
-                                f.write(f"===== 第 {index} 个表格的HTML =====\n")
-                                f.write(table_html + "\n")
-                                f.write("-"*50 + "\n\n")  # 分隔线
+                    #             # 写入标识和表格HTML（格式与打印时一致，便于阅读）
+                    #             f.write(f"===== 第 {index} 个表格的HTML =====\n")
+                    #             f.write(table_html + "\n")
+                    #             f.write("-"*50 + "\n\n")  # 分隔线
                                 
-                                # 可选：同时在控制台打印进度
-                                print(f"已保存第 {index} 个表格到文件")
-                            except Exception as e:
-                                error_msg = f"获取第 {index} 个表格的HTML时出错：{e}\n"
-                                f.write(error_msg)  # 将错误信息也写入文件
-                                print(error_msg)  # 将错误信息也打印到控制台
+                    #             # 可选：同时在控制台打印进度
+                    #             print(f"已保存第 {index} 个表格到文件")
+                    #         except Exception as e:
+                    #             error_msg = f"获取第 {index} 个表格的HTML时出错：{e}\n"
+                    #             f.write(error_msg)  # 将错误信息也写入文件
+                    #             print(error_msg)  # 将错误信息也打印到控制台
                 else:
                     print("未找到工单表格")
-                for index, table in enumerate(tables, start=1):
-            # 获取工单列表  for index, table in enumerate(tables, start=1):
-                    try:
-                        # 找到这一行tr（这里只有一行）
-                        tr = table.find_element(By.TAG_NAME, 'tr')
-                        # 找到所有td元素（顺序对应你的注释）
-                        tds = tr.find_elements(By.TAG_NAME, 'td')
+                # for index, table in enumerate(tables, start=1):
+                #     # 获取工单列表  for index, table in enumerate(tables, start=1):
+                #     try:
+                #         # 找到这一行tr（这里只有一行）
+                #         tr = table.find_element(By.TAG_NAME, 'tr')
+                #         # 找到所有td元素（顺序对应你的注释）
+                #         tds = tr.find_elements(By.TAG_NAME, 'td')
 
-                        # 按注释提取文本，去掉多余空白，替换转义字符 &nbsp; 为普通空格
-                        def get_td_text(i):
-                            # div 里面有文本
-                            div = tds[i].find_element(By.TAG_NAME, 'div')
-                            text = div.text.strip().replace('\xa0', ' ').replace('&nbsp;', ' ')
-                            return text
+                #         # 按注释提取文本，去掉多余空白，替换转义字符 &nbsp; 为普通空格
+                #         def get_td_text(i):
+                #             # div 里面有文本
+                #             div = tds[i].find_element(By.TAG_NAME, 'div')
+                #             text = div.text.strip().replace('\xa0', ' ').replace('&nbsp;', ' ')
+                #             return text
 
-                        print(f"工单 {index} 信息：")
-                        print(f"  工单号: {get_td_text(0)}")
-                        # print(f"  ？？？: {get_td_text(1)}")
-                        print(f"  设备代码: {get_td_text(2)}")
-                        print(f"  工单描述: {get_td_text(3)}")
-                        print(f"  工单开启日期: {get_td_text(4)}")
-                        print(f"  工单超期日期: {get_td_text(5)}")
-                        print(f"  工单状态: {get_td_text(6)}")
-                        print(f"  设备所属成本中心: {get_td_text(7)}")
-                        print(f"  所属部门: {get_td_text(8)}")
-                        # print(f"  所属的资产: {get_td_text(9)}")
-                        # print(f"  空白字段: {get_td_text(10)}")
-                        print(f"  所属人员: {get_td_text(11)}")
-                        print(f"  工单类型: {get_td_text(12)}")
-                        print(f"  工单重要程度: {get_td_text(13)}")
-                        print(f"  所属工厂: {get_td_text(14)}")
-                        print("-" * 50)
-                    except Exception as e:
-                        print(f"解析第 {index} 个工单时出错")
-                        raise e
+                #         print(f"工单 {index} 信息：")
+                #         print(f"  工单号: {get_td_text(0)}")
+                #         # print(f"  ？？？: {get_td_text(1)}")
+                #         print(f"  设备代码: {get_td_text(2)}")
+                #         print(f"  工单描述: {get_td_text(3)}")
+                #         print(f"  工单开启日期: {get_td_text(4)}")
+                #         print(f"  工单超期日期: {get_td_text(5)}")
+                #         print(f"  工单状态: {get_td_text(6)}")
+                #         print(f"  设备所属成本中心: {get_td_text(7)}")
+                #         print(f"  所属部门: {get_td_text(8)}")
+                #         # print(f"  所属的资产: {get_td_text(9)}")
+                #         # print(f"  空白字段: {get_td_text(10)}")
+                #         print(f"  所属人员: {get_td_text(11)}")
+                #         print(f"  工单类型: {get_td_text(12)}")
+                #         print(f"  工单重要程度: {get_td_text(13)}")
+                #         print(f"  所属工厂: {get_td_text(14)}")
+                #         print("-" * 50)
+                #     except Exception as e:
+                #         print(f"解析第 {index} 个工单时出错")
+                #         raise e
             except Exception as e:
                 print(f"🚫 获取第 {index} 个工单时出错")
                 raise e
