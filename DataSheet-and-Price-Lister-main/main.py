@@ -54,10 +54,10 @@ def create_driver():
     options.add_argument("--start-maximized")
     options.add_argument("--log-level=3")  # 设置日志级别
     options.add_experimental_option("detach", True)  # 关键，设置浏览器关闭时不退出
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--blink-settings=imagesEnabled=false")  # 不加载图片
+    # options.add_argument("--headless=new")
+    # options.add_argument("--disable-gpu")
+    # options.add_argument("--disable-extensions")
+    # options.add_argument("--blink-settings=imagesEnabled=false")  # 不加载图片
     service = Service(executable_path="DataSheet-and-Price-Lister-main\drives\msedgedriver.exe")  # 如果 msedgedriver 在 PATH 中，无需指定路径
     driver = webdriver.Edge(
         service=service, 
@@ -590,7 +590,7 @@ if __name__ == '__main__':
                     estimated_hours = operate_element(driver,By.XPATH, locators["estimated_hours"],'get_attribute:value',tag_comment='Estimated Hours')
                     # 3. 点击Book Labor tab
                     operate_element(driver,By.XPATH, locators["book_labor"],'click',tag_comment='Book Labor Tab')
-                    time.sleep(0.5)
+                    time.sleep(2)
 
                     # operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View Tab')
                     # time.sleep(2)
@@ -601,14 +601,14 @@ if __name__ == '__main__':
                     # parent element
                     
                     parent_element = driver.find_element(By.XPATH, locators["panel"])
-
+                    time.sleep(0.5)
                     # 这里需要增加判断Activity是否有值，如果有 10 - DEFAULT / ALL TRADES     |    20 - DEFAULT / ALL TRADES
                     elem = parent_element.find_element(By.XPATH, locators["activity"])
                     elem_value = elem.get_attribute('value')
                     if not elem_value.strip():
                         elem.clear()
                         elem.send_keys('10 - DEFAULT / ALL TRADES')
-                       
+                      
                     # 4.1 employee
                     elem = parent_element.find_element(By.XPATH, locators["employee"])
                     clear_and_send_keys(elem, assigned_to)
@@ -617,11 +617,12 @@ if __name__ == '__main__':
                     clear_and_send_keys(elem, estimated_hours)
                     # 4.3 Date Worked
                     worked_date = random_weekday(start_date, end_date)
+                    time.sleep(0.5)
                     elem = parent_element.find_element(By.XPATH, locators["date_worked"])
                     clear_and_send_keys(elem, worked_date)
                     # 5. 点击Submit
                     operate_element(driver,By.XPATH, locators["submit"],'click',tag_comment='Submit')
-                    time.sleep(0.5)
+                    
                     # too many time
                     # elem = driver.find_element(By.XPATH,"//div[starts-with(@id, 'eammsgbox-')][0]")
                     # if elem:
@@ -639,16 +640,19 @@ if __name__ == '__main__':
                     #     # 再次判断是否弹出too many time 弹窗，可以跳转到标签吗？
 
                     # 6. 点击record save
+                    time.sleep(0.5)
                     operate_element(driver,By.XPATH, locators["record_save"],'click',tag_comment='Record Save')
                     # 右键点击record save ,消除弹窗
+                    time.sleep(0.5)
                     operate_element(driver,By.XPATH, locators["record_save"],'right_click',tag_comment='Record Save')
                     # 6-1. 点击record view
+                    time.sleep(0.5)
                     operate_element(driver,By.XPATH, locators["record_view"],'click',tag_comment='Record View')
                     # 6-2. 修改工单状态 open-->completed
                     operate_element(driver,By.XPATH, locators["status"],'send_keys','Completed',tag_comment='Status')
                     # 6-3. 点击save record
                     operate_element(driver,By.XPATH, locators["record_save"],'click',tag_comment='Save Record')
-                    time.sleep(3)
+                    time.sleep(1)
                     # 7. 点击slide bar
                     operate_chain(driver,By.XPATH, locators["slide_bar"],'double-click')
                     time.sleep(0.5)
